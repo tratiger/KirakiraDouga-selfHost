@@ -105,116 +105,35 @@ export const searchVideoByTagIds = async (searchVideoByVideoTagIdRequest: Search
 		return { success: false, message: "未提供 TAG ID", videosCount: 0, videos: [] };
 };
 
-/**
- * TUS 上传一个文件
- */
-export class TusFileUploader {
-	step: "pending" | "created" | "uploading" | "pausing" | "success" | "error" = "pending";
-	process: Promise<string>;
-	uploading?: tus.Upload;
-	isUploadingVideo: Ref<boolean>;
-
-	/**
-	 * TUS 上传一个文件
-	 * @param file - 文件
-	 * @param progress - 进度（Vue 响应式状态）
-	 * @param isUploadingVideo - 是否正在上传视频（Vue 响应式状态）
-	 */
-	constructor(file: File, progress: Ref<number>, isUploadingVideo: Ref<boolean>) {
-		if (!file) {
-			this.step = "error";
-			useToast(t.toast.upload_file_not_found, "error");
-			throw new Error(t.toast.upload_file_not_found);
-		}
-		this.isUploadingVideo = isUploadingVideo;
-		this.process = new Promise<string>((resolve, reject) => {
-			let videoId = "";
-			// Create a new tus upload
-			const uploader = new tus.Upload(file, {
-				endpoint: `${VIDEO_API_URI}/tus`,
-				onBeforeRequest(req) {
-					const url = req.getURL();
-					if (url?.includes(VIDEO_API_URI)) { // 仅在请求后端 API 获取上传目的地 URL 时设置允许跨域传递 cookie，
-						const xhr = req.getUnderlyingObject();
-						xhr.withCredentials = true;
-					}
-				},
-				retryDelays: [0, 3000, 5000, 10000, 20000], // 重试超时
-				chunkSize: 52428800, // 视频分片大小
-				storeFingerprintForResuming: true, // 存储用于恢复上传的 key // WARN: 正常运行时，应该为 True
-				removeFingerprintOnSuccess: true, // 上传成功后移除用于恢复上传的 key
-				metadata: {
-					name: file.name,
-					maxDurationSeconds: "1800", // 最大视频长度，1800 秒（30 分钟）
-					expiry: getCloudflareRFC3339ExpiryDateTime(3600), // 最大上传耗时，3600 秒（1 小时）
-				},
-				onError: error => {
-					console.error("ERROR", "Upload error:", error);
-					this.step = "error";
-					reject(error);
-				},
-				onProgress: (bytesUploaded, bytesTotal) => {
-					const percentage = bytesUploaded / bytesTotal * 100;
-					progress.value = percentage;
-					console.info(bytesUploaded, bytesTotal, percentage.toFixed(2) + "%"); // useless
-				},
-				onSuccess: () => {
-					console.info("Video upload success");
-					if (videoId) {
-						this.step = "success";
-						resolve(videoId);
-					} else
-						reject(new Error("Can not find the video ID"));
-				},
-				onAfterResponse: (req, res) => {
-					if (!req.getURL().includes(VIDEO_API_URI)) {
-						const headerVideoId = res?.getHeader("stream-media-id");
-						if (headerVideoId)
-							videoId = headerVideoId;
-					}
-				},
-			});
-			this.uploading = uploader;
-			this.step = "created";
-			// Check if there are any previous uploads to continue.
-			uploader.findPreviousUploads().then(previousUploads => {
-				// Found previous uploads so we select the first one.
-				if (previousUploads.length > 0)
-					uploader.resumeFromPreviousUpload(previousUploads[0]);
-
-				// Start the upload
-				uploader.start();
-				this.step = "uploading";
-				isUploadingVideo.value = true;
-			});
-		});
-	}
-
-	/**
-	 * 暂停 TUS 上传
-	 */
-	abort() {
-		if (this.uploading)
-			if (this.step === "uploading") {
-				this.uploading.abort();
-				this.step = "pausing";
-				this.isUploadingVideo.value = false;
-			} else
-				console.error(`Upload pause failed, Pausing can only work when in 'uploading' step, but you are in '${this.step}' step.`);
-	}
-
-	/**
-	 * 恢复 TUS 上传
-	 */
-	resume() {
-		if (this.uploading)
-			if (this.step === "pausing") {
-				this.uploading.start();
-				this.step = "uploading";
-				this.isUploadingVideo.value = true;
-			} else
-				console.error(`Upload resume failed, Uploading can only work when in 'pausing' step, but you are in '${this.step}' step.`);
-	}
+// 新しいHTTPアップロード関数を追加  
+export async function uploadVideoFile(formData: FormData, onProgress?: (progress: number) => void): Promise<{ videoId: string }> {  
+    return new Promise((resolve, reject) => {  
+        const xhr = new XMLHttpRequest();  
+          
+        xhr.upload.addEventListener('progress', (e) => {  
+            if (e.lengthComputable && onProgress) {  
+                const progress = (e.loaded / e.total) * 100;  
+                onProgress(progress);  
+            }  
+        });  
+          
+        xhr.addEventListener('load', () => {  
+            if (xhr.status === 200) {  
+                const response = JSON.parse(xhr.responseText);  
+                resolve(response);  
+            } else {  
+                reject(new Error(`Upload failed: ${xhr.status}`));  
+            }  
+        });  
+          
+        xhr.addEventListener('error', () => {  
+            reject(new Error('Upload failed'));  
+        });  
+          
+        xhr.open('POST', `${VIDEO_API_URI}/upload-file`);  
+        xhr.withCredentials = true;  
+        xhr.send(formData);  
+    });  
 }
 
 /**

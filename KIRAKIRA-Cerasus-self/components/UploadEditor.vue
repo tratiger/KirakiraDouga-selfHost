@@ -1,5 +1,4 @@
 <script setup lang="ts">
-	import type { TusFileUploader } from "~/composables/api/Video/VideoController";
 
 	const props = defineProps<{
 		files: File[];
@@ -44,7 +43,6 @@
 	const hoveredTagContent = ref<[number, string]>(); // 鼠标 hover 的 TAG
 	const hideExceptMe = ref(false);
 	const hideTimeoutId = ref<Timeout>();
-	let uploader: TusFileUploader;
 	const isUploadingVideo = ref(false);
 
 	/**
@@ -132,35 +130,34 @@
 	 * TUS 上传视频文件
 	 * @param files - 文件列表。
 	 */
-	function tusUpload(files: File[]) {
-		if (!files || files.length === 0) {
-			useToast(t.toast.upload_file_not_found, "error");
-			return;
-		}
-
-		uploader = new api.video.TusFileUploader(files[0], uploadProgress, isUploadingVideo);
-		uploader.process?.then((videoId: string) => {
-			cloudflareVideoId.value = videoId;
-			useToast(t.toast.uploaded, "success");
-		}).catch((error: unknown) => {
-			useToast(t.toast.upload_failed, "error");
-			console.error("ERROR", "Upload Failed:", error);
-		});
+	// 新しいHTTPアップロード関数  
+	async function httpUpload(files: File[]) {  
+		if (!files || files.length === 0) {  
+			useToast(t.toast.upload_file_not_found, "error");  
+			return;  
+		}  
+		
+		const formData = new FormData();  
+		formData.append('video', files[0]);  
+		
+		try {  
+			isUploadingVideo.value = true;  
+			const response = await api.video.uploadVideoFile(formData, (progress) => {  
+				uploadProgress.value = progress;  
+			});  
+			cloudflareVideoId.value = response.videoId;  
+			useToast(t.toast.uploaded, "success");  
+		} catch (error) {  
+			useToast(t.toast.upload_failed, "error");  
+			console.error("ERROR", "Upload Failed:", error);  
+		} finally {  
+			isUploadingVideo.value = false;  
+		}  
 	}
 
-	/**
-	 * 暂停 TUS 上传视频文件
-	 */
-	function stopUploading() {
-		if (isUploadingVideo.value) uploader.abort();
-	}
 
-	/**
-	 * 继续 TUS 上传视频文件
-	 */
-	function continueUploading() {
-		if (!isUploadingVideo.value) uploader.resume();
-	}
+
+
 
 	/**
 	 * 提交视频（确认投稿）
@@ -289,9 +286,6 @@
 	/**
 	 * 组件加载后等待三秒开始上传视频文件
 	 */
-	onMounted(() => setTimeout(() => {
-		tusUpload(props.files);
-	}, 3000));
 
 	const [onContentEnter, onContentLeave] = simpleAnimateSize("height", 500, eases.easeInOutSmooth);
 	const flyoutTag = ref<FlyoutModel>();

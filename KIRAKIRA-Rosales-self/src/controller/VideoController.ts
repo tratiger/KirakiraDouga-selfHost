@@ -1,5 +1,5 @@
 import { isPassRbacCheck } from '../service/RbacService.js'
-import { approvePendingReviewVideoService, checkVideoExistByKvidService, deleteVideoByKvidService, getPendingReviewVideoService, getThumbVideoService, getVideoByKvidService, getVideoByUidRequestService, getVideoCoverUploadSignedUrlService, getVideoFileTusEndpointService, searchVideoByKeywordService, searchVideoByVideoTagIdService, updateVideoService } from '../service/VideoService.js'
+import { approvePendingReviewVideoService, checkVideoExistByKvidService, deleteVideoByKvidService, getPendingReviewVideoService, getThumbVideoService, getVideoByKvidService, getVideoByUidRequestService, getVideoCoverUploadSignedUrlService, searchVideoByKeywordService, searchVideoByVideoTagIdService, updateVideoService, uploadVideoFileService } from '../service/VideoService.js'
 import { koaCtx, koaNext } from '../type/koaTypes.js'
 import { ApprovePendingReviewVideoRequestDto, CheckVideoExistRequestDto, DeleteVideoRequestDto, GetVideoByKvidRequestDto, GetVideoByUidRequestDto, GetVideoFileTusEndpointRequestDto, SearchVideoByKeywordRequestDto, SearchVideoByVideoTagIdRequestDto, UploadVideoRequestDto } from './VideoControllerDto.js'
 
@@ -126,28 +126,20 @@ export const searchVideoByKeywordController = async (ctx: koaCtx, next: koaNext)
  * @param next context
  * @returns 获取到的视频信息
  */
-export const getVideoFileTusEndpointController = async (ctx: koaCtx, next: koaNext) => {
-	const uid = parseInt(ctx.cookies.get('uid'), 10)
-	const token = ctx.cookies.get('token')
-
-
-
-	const getVideoFileTusEndpointRequest: GetVideoFileTusEndpointRequestDto = {
-		uploadLength: parseInt(ctx.get('Upload-Length'), 10),
-		uploadMetadata: ctx.get('Upload-Metadata') || '',
-	}
-
-	const destination = await getVideoFileTusEndpointService(uid, token, getVideoFileTusEndpointRequest)
-	ctx.set({
-		'Access-Control-Expose-Headers': 'Location',
-		'Access-Control-Allow-Headers': '*',
-		'Access-Control-Allow-Origin': '*',
-		Location: destination,
-	})
-	ctx.body = destination ? 'true' : 'false'
-	await next()
-}
-
+// 新しいHTTPアップロードコントローラーを追加  
+export const uploadVideoFileController = async (ctx: koaCtx, next: koaNext) => {  
+    const uid = parseInt(ctx.cookies.get('uid'), 10);  
+    const token = ctx.cookies.get('token');  
+      
+    // ファイル名を受け取り、署名付きURLを生成  
+    // 修正後（型アサーションを追加）  
+	const data = ctx.request.body as { fileName?: string };  
+	const fileName = data?.fileName || `video-${uid}-${Date.now()}`;
+      
+    const uploadResult = await uploadVideoFileService(fileName, uid, token);  
+    ctx.body = uploadResult;  
+    await next();  
+};
 
 /**
  * 获取用于上传视频封面图的预签名 URL
@@ -236,4 +228,5 @@ export const approvePendingReviewVideoController = async (ctx: koaCtx, next: koa
 	ctx.body = await approvePendingReviewVideoService(approvePendingReviewVideoRequest, uid, token)
 	await next()
 }
+
 
