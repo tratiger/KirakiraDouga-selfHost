@@ -1,7 +1,8 @@
 import { isPassRbacCheck } from '../service/RbacService.js'
-import { approvePendingReviewVideoService, checkVideoExistByKvidService, deleteVideoByKvidService, getPendingReviewVideoService, getThumbVideoService, getVideoByKvidService, getVideoByUidRequestService, getVideoCoverUploadSignedUrlService, getVideoFileTusEndpointService, searchVideoByKeywordService, searchVideoByVideoTagIdService, updateVideoService } from '../service/VideoService.js'
+import { approvePendingReviewVideoService, checkVideoExistByKvidService, deleteVideoByKvidService, getPendingReviewVideoService, getThumbVideoService, getVideoByKvidService, getVideoByUidRequestService, getVideoCoverUploadSignedUrlService, searchVideoByKeywordService, searchVideoByVideoTagIdService, updateVideoService } from '../service/VideoService.js'
 import { koaCtx, koaNext } from '../type/koaTypes.js'
-import { ApprovePendingReviewVideoRequestDto, CheckVideoExistRequestDto, DeleteVideoRequestDto, GetVideoByKvidRequestDto, GetVideoByUidRequestDto, GetVideoFileTusEndpointRequestDto, SearchVideoByKeywordRequestDto, SearchVideoByVideoTagIdRequestDto, UploadVideoRequestDto } from './VideoControllerDto.js'
+import { ApprovePendingReviewVideoRequestDto, CheckVideoExistRequestDto, DeleteVideoRequestDto, GetVideoByKvidRequestDto, GetVideoByUidRequestDto,  SearchVideoByKeywordRequestDto, SearchVideoByVideoTagIdRequestDto, UploadVideoRequestDto } from './VideoControllerDto.js'
+import { createMinioPutSignedUrl } from '../minio/index.js'
 
 /**
  * 上传视频
@@ -126,26 +127,36 @@ export const searchVideoByKeywordController = async (ctx: koaCtx, next: koaNext)
  * @param next context
  * @returns 获取到的视频信息
  */
-export const getVideoFileTusEndpointController = async (ctx: koaCtx, next: koaNext) => {
-	const uid = parseInt(ctx.cookies.get('uid'), 10)
-	const token = ctx.cookies.get('token')
-
-
-
-	const getVideoFileTusEndpointRequest: GetVideoFileTusEndpointRequestDto = {
-		uploadLength: parseInt(ctx.get('Upload-Length'), 10),
-		uploadMetadata: ctx.get('Upload-Metadata') || '',
-	}
-
-	const destination = await getVideoFileTusEndpointService(uid, token, getVideoFileTusEndpointRequest)
-	ctx.set({
-		'Access-Control-Expose-Headers': 'Location',
-		'Access-Control-Allow-Headers': '*',
-		'Access-Control-Allow-Origin': '*',
-		Location: destination,
-	})
-	ctx.body = destination ? 'true' : 'false'
-	await next()
+export const getVideoFileUploadSignedUrlController = async (ctx: koaCtx, next: koaNext) => {  
+    const uid = parseInt(ctx.cookies.get('uid'), 10)  
+    const token = ctx.cookies.get('token')  
+      
+    // 認証チェック  
+    if (!uid || !token) {  
+        ctx.status = 401  
+        ctx.body = { success: false, message: 'Authentication required' }  
+        return  
+    }  
+      
+    const fileName = `video_${uid}_${Date.now()}.mp4`  
+    const bucketName = process.env.MINIO_VIDEO_BUCKET || 'videos'  
+      
+    const signedUrl = await createMinioPutSignedUrl(bucketName, fileName, 3600)  
+      
+    if (signedUrl) {  
+        ctx.body = {  
+            success: true,  
+            result: {  
+                signedUrl,  
+                fileName  
+            }  
+        }  
+    } else {  
+        ctx.status = 500  
+        ctx.body = { success: false, message: 'Failed to generate signed URL' }  
+    }  
+      
+    await next()  
 }
 
 

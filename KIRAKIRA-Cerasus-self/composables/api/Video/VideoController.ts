@@ -1,9 +1,23 @@
 import * as tus from "tus-js-client";
 import { DELETE, GET, POST, uploadFile2CloudflareImages } from "../Common";
 import type { ApprovePendingReviewVideoRequestDto, ApprovePendingReviewVideoResponseDto, CheckVideoExistRequestDto, CheckVideoExistResponseDto, DeleteVideoRequestDto, DeleteVideoResponseDto, GetVideoByKvidRequestDto, GetVideoByKvidResponseDto, GetVideoByUidRequestDto, GetVideoByUidResponseDto, GetVideoCoverUploadSignedUrlResponseDto, PendingReviewVideoResponseDto, SearchVideoByVideoTagIdRequestDto, SearchVideoByVideoTagIdResponseDto, ThumbVideoResponseDto, UploadVideoRequestDto, UploadVideoResponseDto } from "./VideoControllerDto";
+import type { GetVideoFileUploadSignedUrlResponseDto } from './VideoControllerDto';
 
 const BACK_END_URI = environment.backendUri;
 const VIDEO_API_URI = `${BACK_END_URI}video`;
+
+/**  
+ * MinIOに保存された動画ファイルのURLを生成  
+ * @param fileName - ファイル名  
+ * @returns MinIO動画ファイルURL  
+ */  
+export function getMinioVideoUrl(fileName: string): string {  
+    const minioEndpoint = process.env.MINIO_END_POINT || 'localhost:9000';  
+    const bucketName = process.env.MINIO_VIDEO_BUCKET || 'kirakira-storage';  
+    const useSSL = process.env.MINIO_USE_SSL === 'false';  
+      
+    return `${useSSL ? 'https' : 'http'}://${minioEndpoint}/${bucketName}/${fileName}`;  
+}
 
 /**
  * 获取主页中显示的视频
@@ -105,116 +119,99 @@ export const searchVideoByTagIds = async (searchVideoByVideoTagIdRequest: Search
 		return { success: false, message: "未提供 TAG ID", videosCount: 0, videos: [] };
 };
 
-/**
- * TUS 上传一个文件
- */
-export class TusFileUploader {
-	step: "pending" | "created" | "uploading" | "pausing" | "success" | "error" = "pending";
-	process: Promise<string>;
-	uploading?: tus.Upload;
-	isUploadingVideo: Ref<boolean>;
-
-	/**
-	 * TUS 上传一个文件
-	 * @param file - 文件
-	 * @param progress - 进度（Vue 响应式状态）
-	 * @param isUploadingVideo - 是否正在上传视频（Vue 响应式状态）
-	 */
-	constructor(file: File, progress: Ref<number>, isUploadingVideo: Ref<boolean>) {
-		if (!file) {
-			this.step = "error";
-			useToast(t.toast.upload_file_not_found, "error");
-			throw new Error(t.toast.upload_file_not_found);
-		}
-		this.isUploadingVideo = isUploadingVideo;
-		this.process = new Promise<string>((resolve, reject) => {
-			let videoId = "";
-			// Create a new tus upload
-			const uploader = new tus.Upload(file, {
-				endpoint: `${VIDEO_API_URI}/tus`,
-				onBeforeRequest(req) {
-					const url = req.getURL();
-					if (url?.includes(VIDEO_API_URI)) { // 仅在请求后端 API 获取上传目的地 URL 时设置允许跨域传递 cookie，
-						const xhr = req.getUnderlyingObject();
-						xhr.withCredentials = true;
-					}
-				},
-				retryDelays: [0, 3000, 5000, 10000, 20000], // 重试超时
-				chunkSize: 52428800, // 视频分片大小
-				storeFingerprintForResuming: true, // 存储用于恢复上传的 key // WARN: 正常运行时，应该为 True
-				removeFingerprintOnSuccess: true, // 上传成功后移除用于恢复上传的 key
-				metadata: {
-					name: file.name,
-					maxDurationSeconds: "1800", // 最大视频长度，1800 秒（30 分钟）
-					expiry: getCloudflareRFC3339ExpiryDateTime(3600), // 最大上传耗时，3600 秒（1 小时）
-				},
-				onError: error => {
-					console.error("ERROR", "Upload error:", error);
-					this.step = "error";
-					reject(error);
-				},
-				onProgress: (bytesUploaded, bytesTotal) => {
-					const percentage = bytesUploaded / bytesTotal * 100;
-					progress.value = percentage;
-					console.info(bytesUploaded, bytesTotal, percentage.toFixed(2) + "%"); // useless
-				},
-				onSuccess: () => {
-					console.info("Video upload success");
-					if (videoId) {
-						this.step = "success";
-						resolve(videoId);
-					} else
-						reject(new Error("Can not find the video ID"));
-				},
-				onAfterResponse: (req, res) => {
-					if (!req.getURL().includes(VIDEO_API_URI)) {
-						const headerVideoId = res?.getHeader("stream-media-id");
-						if (headerVideoId)
-							videoId = headerVideoId;
-					}
-				},
-			});
-			this.uploading = uploader;
-			this.step = "created";
-			// Check if there are any previous uploads to continue.
-			uploader.findPreviousUploads().then(previousUploads => {
-				// Found previous uploads so we select the first one.
-				if (previousUploads.length > 0)
-					uploader.resumeFromPreviousUpload(previousUploads[0]);
-
-				// Start the upload
-				uploader.start();
-				this.step = "uploading";
-				isUploadingVideo.value = true;
-			});
-		});
-	}
-
-	/**
-	 * 暂停 TUS 上传
-	 */
-	abort() {
-		if (this.uploading)
-			if (this.step === "uploading") {
-				this.uploading.abort();
-				this.step = "pausing";
-				this.isUploadingVideo.value = false;
-			} else
-				console.error(`Upload pause failed, Pausing can only work when in 'uploading' step, but you are in '${this.step}' step.`);
-	}
-
-	/**
-	 * 恢复 TUS 上传
-	 */
-	resume() {
-		if (this.uploading)
-			if (this.step === "pausing") {
-				this.uploading.start();
-				this.step = "uploading";
-				this.isUploadingVideo.value = true;
-			} else
-				console.error(`Upload resume failed, Uploading can only work when in 'pausing' step, but you are in '${this.step}' step.`);
-	}
+export class DirectFileUploader {  
+    step: "pending" | "uploading" | "pausing" | "success" | "error" = "pending";  
+    process: Promise<string>;  
+    private xhr?: XMLHttpRequest;  
+    private isUploadingVideo: Ref<boolean>;  
+    private fileName?: string;  
+  
+    constructor(file: File, progress: Ref<number>, isUploadingVideo: Ref<boolean>) {  
+        if (!file) {  
+            this.step = "error";  
+            useToast(t.toast.upload_file_not_found, "error");  
+            throw new Error(t.toast.upload_file_not_found);  
+        }  
+          
+        this.isUploadingVideo = isUploadingVideo;  
+        this.process = this.uploadFile(file, progress);  
+    }  
+  
+    private async uploadFile(file: File, progress: Ref<number>): Promise<string> {  
+        try {  
+            // プリサインドURL取得  
+            const signedUrlResponse = await this.getVideoFileUploadSignedUrl();  
+            if (!signedUrlResponse.success || !signedUrlResponse.result) {  
+                throw new Error('Failed to get signed URL');  
+            }  
+  
+            const { signedUrl, fileName } = signedUrlResponse.result;  
+            this.fileName = fileName;  
+  
+            // ファイルアップロード  
+            return await this.uploadToSignedUrl(file, signedUrl, progress);  
+        } catch (error) {  
+            this.step = "error";  
+            throw error;  
+        }  
+    }  
+  
+    private async getVideoFileUploadSignedUrl(): Promise<GetVideoFileUploadSignedUrlResponseDto> {  
+    return await GET(`${VIDEO_API_URI}/file/preUpload`, { credentials: "include" }) as GetVideoFileUploadSignedUrlResponseDto;  
+	} 
+  
+    private uploadToSignedUrl(file: File, signedUrl: string, progress: Ref<number>): Promise<string> {  
+        return new Promise((resolve, reject) => {  
+            this.xhr = new XMLHttpRequest();  
+                      // CORS設定を追加  
+        	this.xhr.withCredentials = false; // MinIOへの直接アップロードではfalse  
+            
+			this.xhr.upload.onprogress = (event) => {  
+                if (event.lengthComputable) {  
+                    const percentage = (event.loaded / event.total) * 100;  
+                    progress.value = percentage;  
+                }  
+            };  
+  
+            this.xhr.onload = () => {  
+                if (this.xhr!.status === 200 || this.xhr!.status === 204) {  
+                    this.step = "success";  
+                    this.isUploadingVideo.value = false;  
+                    resolve(this.fileName!);  
+                } else {  
+                    this.step = "error";  
+                    this.isUploadingVideo.value = false;  
+                    reject(new Error(`Upload failed with status ${this.xhr!.status}`));  
+                }  
+            };  
+  
+            this.xhr.onerror = () => {  
+                this.step = "error";  
+                this.isUploadingVideo.value = false;  
+                reject(new Error('Upload failed'));  
+            };  
+  
+            this.xhr.open('PUT', signedUrl);  
+            this.xhr.setRequestHeader('Content-Type', file.type || 'video/mp4');  
+              
+            this.step = "uploading";  
+            this.isUploadingVideo.value = true;  
+            this.xhr.send(file);  
+        });  
+    }  
+  
+    abort() {  
+        if (this.xhr && this.step === "uploading") {  
+            this.xhr.abort();  
+            this.step = "pausing";  
+            this.isUploadingVideo.value = false;  
+        }  
+    }  
+  
+    resume() {  
+        // プリサインドURL方式では断続アップロードは困難  
+        console.warn('Resume is not supported with presigned URL upload');  
+    }  
 }
 
 /**

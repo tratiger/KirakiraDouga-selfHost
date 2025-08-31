@@ -1,6 +1,6 @@
 <script setup lang="ts">
-	import type { TusFileUploader } from "~/composables/api/Video/VideoController";
-
+	import type { DirectFileUploader } from "~/composables/api/Video/VideoController";
+	import { getMinioVideoUrl } from "~/composables/api/Video/VideoController";
 	const props = defineProps<{
 		files: File[];
 	}>();
@@ -44,7 +44,7 @@
 	const hoveredTagContent = ref<[number, string]>(); // 鼠标 hover 的 TAG
 	const hideExceptMe = ref(false);
 	const hideTimeoutId = ref<Timeout>();
-	let uploader: TusFileUploader;
+	let uploader: DirectFileUploader;
 	const isUploadingVideo = ref(false);
 
 	/**
@@ -132,20 +132,20 @@
 	 * TUS 上传视频文件
 	 * @param files - 文件列表。
 	 */
-	function tusUpload(files: File[]) {
-		if (!files || files.length === 0) {
-			useToast(t.toast.upload_file_not_found, "error");
-			return;
-		}
-
-		uploader = new api.video.TusFileUploader(files[0], uploadProgress, isUploadingVideo);
-		uploader.process?.then((videoId: string) => {
-			cloudflareVideoId.value = videoId;
-			useToast(t.toast.uploaded, "success");
-		}).catch((error: unknown) => {
-			useToast(t.toast.upload_failed, "error");
-			console.error("ERROR", "Upload Failed:", error);
-		});
+	function directUpload(files: File[]) {  
+		if (!files || files.length === 0) {  
+			useToast(t.toast.upload_file_not_found, "error");  
+			return;  
+		}  
+	
+		uploader = new api.video.DirectFileUploader(files[0], uploadProgress, isUploadingVideo);  
+		uploader.process?.then((fileName: string) => {  
+			cloudflareVideoId.value = fileName; // ファイル名を保存  
+			useToast(t.toast.uploaded, "success");  
+		}).catch((error: unknown) => {  
+			useToast(t.toast.upload_failed, "error");  
+			console.error("ERROR", "Upload Failed:", error);  
+		});  
 	}
 
 	/**
@@ -193,7 +193,7 @@
 				{
 					id: 0,
 					videoPartTitle: props.files[0].name,
-					link: getCloudflareMpdVideoUrl(cloudflareVideoId.value),
+					link: getMinioVideoUrl(cloudflareVideoId.value), // 新しいMinIO URL生成関数  
 				},
 			],
 			title: title.value,
@@ -289,8 +289,8 @@
 	/**
 	 * 组件加载后等待三秒开始上传视频文件
 	 */
-	onMounted(() => setTimeout(() => {
-		tusUpload(props.files);
+	onMounted(() => setTimeout(() => {  
+    	directUpload(props.files); // tusUpload → directUpload  
 	}, 3000));
 
 	const [onContentEnter, onContentLeave] = simpleAnimateSize("height", 500, eases.easeInOutSmooth);

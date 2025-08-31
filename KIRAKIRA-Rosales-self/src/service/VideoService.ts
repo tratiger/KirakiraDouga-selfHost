@@ -1,10 +1,10 @@
 import { Client } from '@elastic/elasticsearch'
 import mongoose, { InferSchemaType, PipelineStage } from 'mongoose'
-import { createMinioPutSignedUrl, getMinioTusEndpoint } from '../minio/index.js'
+import { createMinioPutSignedUrl } from '../minio/index.js'
 import { isEmptyObject } from '../common/ObjectTool.js'
 import { generateSecureRandomString } from '../common/RandomTool.js'
 import { CreateOrUpdateBrowsingHistoryRequestDto } from '../controller/BrowsingHistoryControllerDto.js'
-import { ApprovePendingReviewVideoRequestDto, ApprovePendingReviewVideoResponseDto, CheckVideoBlockedByKvidResponseDto, CheckVideoExistRequestDto, CheckVideoExistResponseDto, DeleteVideoRequestDto, DeleteVideoResponseDto, GetVideoByKvidRequestDto, GetVideoByKvidResponseDto, GetVideoByUidRequestDto, GetVideoByUidResponseDto, GetVideoCoverUploadSignedUrlResponseDto, GetVideoFileTusEndpointRequestDto, PendingReviewVideoResponseDto, SearchVideoByKeywordRequestDto, SearchVideoByKeywordResponseDto, SearchVideoByVideoTagIdRequestDto, SearchVideoByVideoTagIdResponseDto, ThumbVideoResponseDto, UploadVideoRequestDto, UploadVideoResponseDto, VideoPartDto } from '../controller/VideoControllerDto.js'
+import { ApprovePendingReviewVideoRequestDto, ApprovePendingReviewVideoResponseDto, CheckVideoBlockedByKvidResponseDto, CheckVideoExistRequestDto, CheckVideoExistResponseDto, DeleteVideoRequestDto, DeleteVideoResponseDto, GetVideoByKvidRequestDto, GetVideoByKvidResponseDto, GetVideoByUidRequestDto, GetVideoByUidResponseDto, GetVideoCoverUploadSignedUrlResponseDto, PendingReviewVideoResponseDto, SearchVideoByKeywordRequestDto, SearchVideoByKeywordResponseDto, SearchVideoByVideoTagIdRequestDto, SearchVideoByVideoTagIdResponseDto, ThumbVideoResponseDto, UploadVideoRequestDto, UploadVideoResponseDto, VideoPartDto } from '../controller/VideoControllerDto.js'
 import { DbPoolOptions, deleteDataFromMongoDB, findOneAndUpdateData4MongoDB, insertData2MongoDB, selectDataByAggregateFromMongoDB, selectDataFromMongoDB } from '../dbPool/DbClusterPool.js'
 import { OrderByType, QueryType, SelectType, UpdateType } from '../dbPool/DbClusterPoolTypes.js'
 import { UserInfoSchema } from '../dbPool/schema/UserSchema.js'
@@ -679,30 +679,30 @@ export const searchVideoByKeywordService = async (searchVideoByKeywordRequest: S
  * @param getVideoFileTusEndpointRequest 获取视频文件 TUS 上传端点的请求载荷
  * @returns 获取视频文件 TUS 上传端点地址
  */
-export const getVideoFileTusEndpointService = async (uid: number, token: string, getVideoFileTusEndpointRequest: GetVideoFileTusEndpointRequestDto): Promise<string | undefined> => {
-	try {
-		if (!(await checkUserTokenService(uid, token)).success) {
-			console.error('ERROR', '无法获取 TUS 上传端点, 用户校验未通过', { uid });
-			return undefined;
-		}
+// export const getVideoFileTusEndpointService = async (uid: number, token: string, getVideoFileTusEndpointRequest: GetVideoFileTusEndpointRequestDto): Promise<string | undefined> => {
+// 	try {
+// 		if (!(await checkUserTokenService(uid, token)).success) {
+// 			console.error('ERROR', '无法获取 TUS 上传端点, 用户校验未通过', { uid });
+// 			return undefined;
+// 		}
 
-		// We don't need to process getVideoFileTusEndpointRequest here because for MinIO,
-		// the TUS endpoint is a fixed URL per bucket. The client will handle the TUS protocol,
-		// including sending metadata and upload length. This service just provides the endpoint.
+// 		// We don't need to process getVideoFileTusEndpointRequest here because for MinIO,
+// 		// the TUS endpoint is a fixed URL per bucket. The client will handle the TUS protocol,
+// 		// including sending metadata and upload length. This service just provides the endpoint.
 
-		const tusEndpoint = getMinioTusEndpoint();
+// 		const tusEndpoint = getMinioTusEndpoint();
 
-		if (tusEndpoint) {
-			return tusEndpoint;
-		} else {
-			console.error('ERROR', '无法获取 MinIO TUS 上传端点, 端点为空');
-			return undefined;
-		}
-	} catch (error) {
-		console.error('ERROR', '获取 MinIO TUS 上传端点时出错, 未知错误：', error);
-		return undefined;
-	}
-}
+// 		if (tusEndpoint) {
+// 			return tusEndpoint;
+// 		} else {
+// 			console.error('ERROR', '无法获取 MinIO TUS 上传端点, 端点为空');
+// 			return undefined;
+// 		}
+// 	} catch (error) {
+// 		console.error('ERROR', '获取 MinIO TUS 上传端点时出错, 未知错误：', error);
+// 		return undefined;
+// 	}
+// }
 
 /**
  * 获取用于上传视频封面图的预签名 URL
