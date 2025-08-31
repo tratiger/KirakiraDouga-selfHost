@@ -1,5 +1,22 @@
 import { VideoTag } from "./VideoTagControllerDto.js";
 
+/**  
+ * 動画ファイルアップロード用プリサインドURL取得の響応結果  
+ */  
+export type GetVideoFileUploadSignedUrlResponseDto = {  
+    /** 請求是否成功，成功返回 true，否則返回 false */  
+    success: boolean;  
+    /** 附加的文本消息 */  
+    message?: string;  
+    /** 請求到的動画ファイルアップロード用プリサインドURL数据 */  
+    result?: {  
+        /** プリサインドURL */  
+        signedUrl: string;  
+        /** ファイル名 */  
+        fileName: string;  
+    };  
+};
+
 /**
  * 单个视频分 P 数据参数
  */

@@ -74,16 +74,16 @@ export const createMinioPutSignedUrl = async (bucketName: string, fileName:strin
  * 获取 MinIO TUS 上传端点
  * @returns MinIO TUS 上传端点 URL
  */
-export const getMinioTusEndpoint = (): string | undefined => {
-    const minioEndPoint = process.env.MINIO_END_POINT
-    const minioPort = process.env.MINIO_PORT ? parseInt(process.env.MINIO_PORT, 10) : 9000
-    const bucketName = process.env.MINIO_TUS_BUCKET
-    const useSSL = process.env.MINIO_USE_SSL === 'true'
+// export const getMinioTusEndpoint = (): string | undefined => {
+//     const minioEndPoint = process.env.MINIO_END_POINT
+//     const minioPort = process.env.MINIO_PORT ? parseInt(process.env.MINIO_PORT, 10) : 9000
+//     const bucketName = process.env.MINIO_TUS_BUCKET
+//     const useSSL = process.env.MINIO_USE_SSL === 'true'
 
-    if (!minioEndPoint || !bucketName) {
-        console.error('ERROR', '无法获取 MinIO TUS 端点, minioEndPoint 或 bucketName 可能为空。')
-        return undefined
-    }
+//     if (!minioEndPoint || !bucketName) {
+//         console.error('ERROR', '无法获取 MinIO TUS 端点, minioEndPoint 或 bucketName 可能为空。')
+//         return undefined
+//     }
 
-    return `${useSSL ? 'https' : 'http'}://${minioEndPoint}:${minioPort}/${bucketName}`
-}
+//     return `${useSSL ? 'https' : 'http'}://${minioEndPoint}:${minioPort}/${bucketName}`
+// }
