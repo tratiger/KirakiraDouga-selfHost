@@ -1,5 +1,5 @@
 import { isPassRbacCheck } from '../service/RbacService.js'
-import { approvePendingReviewVideoService, checkVideoExistByKvidService, deleteVideoByKvidService, getPendingReviewVideoService, getThumbVideoService, getVideoByKvidService, getVideoByUidRequestService, getVideoCoverUploadSignedUrlService, searchVideoByKeywordService, searchVideoByVideoTagIdService, updateVideoService, uploadVideoFileToMinioService } from '../service/VideoService.js'
+import { approvePendingReviewVideoService, checkVideoExistByKvidService, createVideoRecord, deleteVideoByKvidService, getPendingReviewVideoService, getThumbVideoService, getVideoByKvidService, getVideoByUidRequestService, getVideoCoverUploadSignedUrlService, searchVideoByKeywordService, searchVideoByVideoTagIdService, updateVideoService, uploadVideoFileToMinioService } from '../service/VideoService.js'
 import { koaCtx, koaNext } from '../type/koaTypes.js'
 import { ApprovePendingReviewVideoRequestDto, CheckVideoExistRequestDto, DeleteVideoRequestDto, GetVideoByKvidRequestDto, GetVideoByUidRequestDto, GetVideoFileTusEndpointRequestDto, SearchVideoByKeywordRequestDto, SearchVideoByVideoTagIdRequestDto, UploadVideoRequestDto } from './VideoControllerDto.js'
 
@@ -154,8 +154,37 @@ export const uploadVideoFileController = async (ctx: koaCtx, next: koaNext) => {
 	});
 
 	const uploadResult = await uploadVideoFileToMinioService(videoFile, fileName, uid, token)
-	ctx.body = uploadResult
-	await next()
+
+	// MinIOアップロード結果からminioKeyとminioUrlを取得
+	if (uploadResult.success) {
+		// videoId は createVideoRecord で生成されるため、ここでは不要。
+		// MinIOから返されたminioKeyとminioUrlをvideoPartに設定
+		const videoMetadata: UploadVideoRequestDto = {
+			title: fileName, // またはユーザーが入力したタイトル
+			videoPart: [{
+				id: 1, // 仮の値、必要に応じて変更
+				link: uploadResult.minioUrl, // MinIOの公開URLをlinkに設定
+				videoPartTitle: fileName, // またはユーザーが入力したタイトル
+			}],
+			image: uploadResult.minioUrl, // MinIOの公開URLをimageにも設定
+			uploaderId: uid,
+			duration: 0, // 仮の値、必要に応じて変更
+			description: '',
+			videoCategory: 'misc', // 仮の値、必要に応じて変更
+			copyright: 'self-made',
+			pushToFeed: false,
+			ensureOriginal: true,
+			videoTagList: [],
+		};
+
+		// createVideoRecord を呼び出して動画メタデータをデータベースに保存
+		const recordResult = await createVideoRecord(videoMetadata, uid, token);
+		console.log('createVideoRecord result:', recordResult); // ログを追加
+		ctx.body = recordResult;
+	} else {
+		ctx.body = uploadResult;
+	}
+	await next();
 }
 
 /**
@@ -247,3 +276,41 @@ export const approvePendingReviewVideoController = async (ctx: koaCtx, next: koa
 }
 
 
+/**
+ * 動画メタデータをデータベースに保存するコントローラー
+ * @param ctx context
+ * @param next context
+ */
+export const createVideoController = async (ctx: koaCtx, next: koaNext) => {
+    const uid = parseInt(ctx.cookies.get('uid'), 10);
+    const token = ctx.cookies.get('token');
+
+    const data = ctx.request.body as Partial<UploadVideoRequestDto>;
+    const createVideoRequest: UploadVideoRequestDto = {
+        title: data.title || '',
+        videoPart: data.videoPart || [],
+        image: data.image || '',
+        uploaderId: uid, // uploaderIdはcookieから取得
+        duration: data.duration ?? -1,
+        description: data.description || '',
+        videoCategory: data.videoCategory || '',
+        copyright: data.copyright || '',
+        originalAuthor: data.originalAuthor,
+        originalLink: data.originalLink,
+        pushToFeed: data.pushToFeed,
+        ensureOriginal: data.ensureOriginal,
+        videoTagList: data.videoTagList || [],
+    };
+
+    // videoPartにfilepathが含まれているかチェック
+    if (!createVideoRequest.videoPart.every(p => p.link)) {
+        ctx.status = 400;
+        ctx.body = { success: false, message: 'ビデオファイルのパスが見つかりません。' };
+        await next();
+        return;
+    }
+
+    const result = await createVideoRecord(createVideoRequest, uid, token);
+    ctx.body = result;
+    await next();
+};

@@ -175,6 +175,15 @@ export async function uploadVideoCover(fileName: string, videoCoverBlobData: Blo
  * @param uploadVideoRequest - 视频数据
  * @returns 上传视频的请求响应
  */
+export async function createVideo(videoMetadata: UploadVideoRequestDto): Promise<UploadVideoResponseDto> {
+	return await POST(`${VIDEO_API_URI}`, videoMetadata, { credentials: "include" }) as UploadVideoResponseDto;
+}
+
+/**
+ * 提交已上传完成的视频
+ * @param uploadVideoRequest - 视频数据
+ * @returns 上传视频的请求响应
+ */
 export async function commitVideo(uploadVideoRequest: UploadVideoRequestDto): Promise<UploadVideoResponseDto> {
 	return await POST(`${VIDEO_API_URI}/upload`, uploadVideoRequest, { credentials: "include" }) as UploadVideoResponseDto;
 }

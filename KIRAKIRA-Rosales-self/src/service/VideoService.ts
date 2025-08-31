@@ -73,12 +73,22 @@ export const uploadVideoFileToMinioService = async (videoFile: any, fileName: st
             Body: fs.createReadStream(videoFile.filepath),
             ContentType: videoFile.mimetype,
         });
+          await S3.send(uploadCommand);
+          S3.destroy();
           
-        await S3.send(uploadCommand);
-        S3.destroy();
+          // アップロード後、一時ファイルを削除
+          fs.unlink(videoFile.filepath, (err) => {
+              if (err) {
+                  console.error('ERROR', '一時ファイルの削除に失敗しました:', err);
+              }
+          });
+  
+          // MinIOの公開URLを生成 (例: http://minio-endpoint:port/bucket-name/file-name)
+          const minioPublicUrl = `${useSSL ? 'https' : 'http'}://${minioEndPoint}:${minioPort}/${bucketName}/${fileName}`;
+            
+          // videoIdを生成（既存のロジックを使用）
+          const session = await mongoose.startSession();
           
-        // videoIdを生成（既存のロジックを使用）  
-        const session = await mongoose.startSession();  
         session.startTransaction();  
           
         const __VIDEO_SEQUENCE_EJECT__ = [9, 42, 233, 404, 2233, 10388, 10492, 114514];  
@@ -88,13 +98,14 @@ export const uploadVideoFileToMinioService = async (videoFile: any, fileName: st
             await session.commitTransaction();  
             session.endSession();  
               
-            return {   
-                success: true,   
-                videoId: videoIdResult.sequenceValue,  
-                fileName,  
-                message: 'ファイルアップロードが完了しました'   
-            };  
-        } else {  
+            return {
+                success: true,
+                videoId: videoIdResult.sequenceValue,
+                minioKey: fileName, // MinIOのオブジェクトキー
+                minioUrl: minioPublicUrl, // MinIOの公開URL
+                message: 'ファイルアップロードが完了しました'
+            };
+        } else {
             await session.abortTransaction();  
             session.endSession();  
             return { success: false, message: 'videoID生成に失敗しました' };  
@@ -446,6 +457,7 @@ export const checkVideoBlockedByKvidService = async (videoId: number, selectorUu
 export const getVideoByKvidService = async (getVideoByKvidRequest: GetVideoByKvidRequestDto, selectorUuid?: string, selectorToken?: string): Promise<GetVideoByKvidResponseDto> => {
 	try {
 		const { videoId } = getVideoByKvidRequest
+		console.log('getVideoByKvidService called with videoId:', videoId); // ログを追加
 		const { collectionName: videoCollectionName, schemaInstance: videoSchemaInstance } = VideoSchema
 
 		let isHidden = false
@@ -1220,3 +1232,88 @@ const checkDeleteVideoRequest = (deleteVideoRequest: DeleteVideoRequestDto): boo
 const checkApprovePendingReviewVideoRequest = (approvePendingReviewVideoRequest: ApprovePendingReviewVideoRequestDto) => {
 	return (!!approvePendingReviewVideoRequest.videoId && typeof approvePendingReviewVideoRequest.videoId === 'number' && approvePendingReviewVideoRequest.videoId >= 0)
 }
+
+/**
+ * 動画メタデータをデータベースに保存する
+ * @param videoData 動画メタデータ
+ * @param uid ユーザーID
+ * @param token ユーザートークン
+ * @returns データベースへの保存結果
+ */
+export const createVideoRecord = async (videoData: UploadVideoRequestDto, uid: number, token: string) => {
+    try {
+        // ユーザー認証
+        if (!(await checkUserTokenService(uid, token)).success) {
+            return { success: false, message: 'ユーザー認証に失敗しました' };
+        }
+
+        const { collectionName, schemaInstance } = VideoSchema;
+        type Video = InferSchemaType<typeof schemaInstance>;
+
+        // 必須フィールドのチェック
+        if (!videoData.title || !videoData.videoPart || videoData.videoPart.length === 0) {
+            return { success: false, message: 'タイトルとビデオパスは必須です' };
+        }
+
+        const session = await mongoose.startSession();
+        session.startTransaction();
+
+        try {
+            const videoIdResult = await getNextSequenceValueEjectService('video', [], 1, 1, session);
+            if (!videoIdResult.success || !videoIdResult.sequenceValue) {
+                await session.abortTransaction();
+                session.endSession();
+                return { success: false, message: 'ビデオIDの生成に失敗しました' };
+            }
+            const videoId = videoIdResult.sequenceValue;
+            const uploaderUUID = await getUserUuid(uid);
+            if (!uploaderUUID) {
+                await session.abortTransaction();
+                session.endSession();
+                return { success: false, message: 'アップローダーのUUIDが見つかりません' };
+            }
+
+            const video: Video = {
+                videoId,
+                title: videoData.title,
+                videoPart: videoData.videoPart.map(part => ({ ...part, editDateTime: new Date().getTime() })) as Video['videoPart'],
+                image: videoData.image || '',
+                uploadDate: new Date().getTime(),
+                watchedCount: 0,
+                uploaderUUID,
+                uploaderId: uid,
+                duration: videoData.duration || 0,
+                description: videoData.description || '',
+                videoCategory: videoData.videoCategory || 'misc',
+                copyright: videoData.copyright || 'self-made',
+                originalAuthor: videoData.originalAuthor,
+                originalLink: videoData.originalLink,
+                pushToFeed: videoData.pushToFeed ?? false,
+                ensureOriginal: videoData.ensureOriginal ?? false,
+                videoTagList: (videoData.videoTagList || []).map(tag => ({ ...tag, editDateTime: new Date().getTime() })) as Video['videoTagList'],
+                pendingReview: false,
+                editDateTime: new Date().getTime(),
+            };
+
+            const insertResult = await insertData2MongoDB(video, schemaInstance, collectionName, { session });
+
+            if (insertResult.success) {
+                await session.commitTransaction();
+                session.endSession();
+                return { success: true, videoId, message: '動画メタデータの保存に成功しました' };
+            } else {
+                await session.abortTransaction();
+                session.endSession();
+                return { success: false, message: 'データベースへの保存に失敗しました' };
+            }
+        } catch (error) {
+            await session.abortTransaction();
+            session.endSession();
+            console.error('ERROR', '動画メタデータの保存中にエラーが発生しました:', error);
+            return { success: false, message: '動画メタデータの保存中にエラーが発生しました' };
+        }
+    } catch (error) {
+        console.error('ERROR', 'createVideoRecordサービスで予期せぬエラーが発生しました:', error);
+        return { success: false, message: 'サーバー内部でエラーが発生しました' };
+    }
+};

@@ -44,7 +44,7 @@ import {
 	requestSendForgotPasswordVerificationCodeController,
 } from '../controller/UserController.js'
 import { adminDeleteVideoCommentController, cancelVideoCommentDownvoteController, cancelVideoCommentUpvoteController, deleteSelfVideoCommentController, emitVideoCommentController, emitVideoCommentDownvoteController, emitVideoCommentUpvoteController, getVideoCommentListByKvidController } from '../controller/VideoCommentController.js'
-import { approvePendingReviewVideoController, checkVideoExistController, deleteVideoByKvidController, getPendingReviewVideoController, getThumbVideoController, getVideoByKvidController, getVideoByUidController, getVideoCoverUploadSignedUrlController, searchVideoByKeywordController, searchVideoByVideoTagIdController, updateVideoController, uploadVideoFileController } from '../controller/VideoController.js'
+import { approvePendingReviewVideoController, checkVideoExistController, createVideoController, deleteVideoByKvidController, getPendingReviewVideoController, getThumbVideoController, getVideoByKvidController, getVideoByUidController, getVideoCoverUploadSignedUrlController, searchVideoByKeywordController, searchVideoByVideoTagIdController, updateVideoController, uploadVideoFileController } from '../controller/VideoController.js'
 import { createVideoTagController, getVideoTagByTagIdController, searchVideoTagController } from '../controller/VideoTagController.js'
 import { adminGetUserRolesByUidController, adminUpdateUserRoleController, createRbacApiPathController, createRbacRoleController, deleteRbacApiPathController, deleteRbacRoleController, getRbacApiPathController, getRbacRoleController, updateApiPathPermissionsForRoleController } from '../controller/RbacController.js'
 import { getStgEnvBackEndSecretController } from '../controller/ConsoleSecretController.js'
@@ -452,7 +452,9 @@ router.post('/video/search/tag', searchVideoByVideoTagIdController) // 根据 TA
 // 	"tagId": [1, 2]
 // }
 
-// 新しいHTTPアップロードエンドポイントを追加  
+router.post('/api/video', createVideoController) // 動画メタデータを保存する新しいエンドポイント
+
+// 新しいHTTPアップロードエンドポイントを追加
 router.post('/video/upload-file', koaBody({ multipart: true }), uploadVideoFileController)
 
 router.get('/video/cover/preUpload', getVideoCoverUploadSignedUrlController) // 获取用于上传视频封面图的预签名 URL

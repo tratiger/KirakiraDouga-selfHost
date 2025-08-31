@@ -210,15 +210,17 @@
 		};
 		isCommitButtonLoading.value = true;
 		try {
-			const commitVideoResult = await api.video.commitVideo(uploadVideoRequest);
-			const videoId = commitVideoResult?.videoId;
-			if (commitVideoResult.success && videoId) { // TODO: 视频投稿成功后要做的操作（TODO: 暂时是等待 1 秒后显示纸屑然后跳转到视频页，以后可能需要修改）
-				console.info("INFO", `视频投稿成功, KVID: ${videoId}`);
+			const createVideoResult = await api.video.createVideo(uploadVideoRequest);
+			const videoId = createVideoResult?.videoId;
+			if (createVideoResult.success && videoId) {
+				console.info("INFO", `動画投稿成功, KVID: ${videoId}`);
 				setTimeout(() => {
 					isCommitButtonLoading.value = false;
-					showConfetti(); // 显示五彩纸屑。
+					showConfetti();
 					navigate(`/video/kv${videoId}`);
 				}, 1000);
+			} else {
+				useToast(t.toast.upload_failed, "error");
 			}
 		} catch (error) {
 			isCommitButtonLoading.value = false;
