@@ -50,9 +50,9 @@ import { adminGetUserRolesByUidController, adminUpdateUserRoleController, create
 import { getStgEnvBackEndSecretController } from '../controller/ConsoleSecretController.js'
 import { addNewUid2FeedGroupController, administratorApproveFeedGroupInfoChangeController, administratorDeleteFeedGroupController, createFeedGroupController, createOrEditFeedGroupInfoController, deleteFeedGroupController, followingUploaderController, getFeedContentController, getFeedGroupCoverUploadSignedUrlController, getFeedGroupListController, removeUidFromFeedGroupController, unfollowingUploaderController } from '../controller/FeedController.js'
 import { addRegexController, blockKeywordController, blockTagController, blockUserByUidController, getBlockListController, hideUserByUidController, removeRegexController, showUserByUidController, unblockKeywordController, unblockTagController, unblockUserByUidController } from '../controller/BlockController.js'
+import { koaBody } from 'koa-body'
 
 const router = new Router()
-
 // router-begin
 
 router.get('/', helloWorld) // 测试 // DELETE ME
@@ -453,7 +453,7 @@ router.post('/video/search/tag', searchVideoByVideoTagIdController) // 根据 TA
 // }
 
 // 新しいHTTPアップロードエンドポイントを追加  
-router.post('/video/upload-file', uploadVideoFileController)
+router.post('/video/upload-file', koaBody({ multipart: true }), uploadVideoFileController)
 
 router.get('/video/cover/preUpload', getVideoCoverUploadSignedUrlController) // 获取用于上传视频封面图的预签名 URL
 // https://localhost:9999/video/cover/preUpload

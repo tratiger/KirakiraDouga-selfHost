@@ -106,33 +106,42 @@ export const searchVideoByTagIds = async (searchVideoByVideoTagIdRequest: Search
 };
 
 // 新しいHTTPアップロード関数を追加  
-export async function uploadVideoFile(formData: FormData, onProgress?: (progress: number) => void): Promise<{ videoId: string }> {  
+export async function uploadVideoFile(formData: FormData, onProgress?: (progress: number) => void): Promise<{ success: boolean; videoId?: string; message?: string }> {  
     return new Promise((resolve, reject) => {  
-        const xhr = new XMLHttpRequest();  
+        const xhr = new XMLHttpRequest();
           
-        xhr.upload.addEventListener('progress', (e) => {  
-            if (e.lengthComputable && onProgress) {  
-                const progress = (e.loaded / e.total) * 100;  
-                onProgress(progress);  
-            }  
-        });  
+        xhr.upload.addEventListener('progress', (e) => {
+            if (e.lengthComputable && onProgress) {
+                const progress = (e.loaded / e.total) * 100;
+                onProgress(progress);
+            }
+        });
           
-        xhr.addEventListener('load', () => {  
-            if (xhr.status === 200) {  
-                const response = JSON.parse(xhr.responseText);  
-                resolve(response);  
-            } else {  
-                reject(new Error(`Upload failed: ${xhr.status}`));  
-            }  
-        });  
+        xhr.addEventListener('load', () => {
+            if (xhr.status === 200) {
+                const response = JSON.parse(xhr.responseText);
+                if (response.success) {
+                    resolve(response);
+                } else {
+                    reject(new Error(response.message || 'アップロードに失敗しました'));
+                }
+            } else {
+                reject(new Error(`Upload failed: ${xhr.status}`));
+            }
+        });
           
-        xhr.addEventListener('error', () => {  
-            reject(new Error('Upload failed'));  
-        });  
+        xhr.addEventListener('error', () => {
+            reject(new Error('ネットワークエラーが発生しました'));
+        });
           
-        xhr.open('POST', `${VIDEO_API_URI}/upload-file`);  
-        xhr.withCredentials = true;  
-        xhr.send(formData);  
+        xhr.open('POST', `${VIDEO_API_URI}/upload-file`);
+        xhr.withCredentials = true;
+  const newFormData = new FormData();
+  const videoFile = formData.get('video');
+  if (videoFile) {
+   newFormData.append('videoFile', videoFile);
+  }
+        xhr.send(newFormData);
     });  
 }
 

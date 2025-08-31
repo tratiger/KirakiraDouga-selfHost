@@ -1,5 +1,5 @@
 import { isPassRbacCheck } from '../service/RbacService.js'
-import { approvePendingReviewVideoService, checkVideoExistByKvidService, deleteVideoByKvidService, getPendingReviewVideoService, getThumbVideoService, getVideoByKvidService, getVideoByUidRequestService, getVideoCoverUploadSignedUrlService, searchVideoByKeywordService, searchVideoByVideoTagIdService, updateVideoService, uploadVideoFileService } from '../service/VideoService.js'
+import { approvePendingReviewVideoService, checkVideoExistByKvidService, deleteVideoByKvidService, getPendingReviewVideoService, getThumbVideoService, getVideoByKvidService, getVideoByUidRequestService, getVideoCoverUploadSignedUrlService, searchVideoByKeywordService, searchVideoByVideoTagIdService, updateVideoService, uploadVideoFileToMinioService } from '../service/VideoService.js'
 import { koaCtx, koaNext } from '../type/koaTypes.js'
 import { ApprovePendingReviewVideoRequestDto, CheckVideoExistRequestDto, DeleteVideoRequestDto, GetVideoByKvidRequestDto, GetVideoByUidRequestDto, GetVideoFileTusEndpointRequestDto, SearchVideoByKeywordRequestDto, SearchVideoByVideoTagIdRequestDto, UploadVideoRequestDto } from './VideoControllerDto.js'
 
@@ -127,19 +127,36 @@ export const searchVideoByKeywordController = async (ctx: koaCtx, next: koaNext)
  * @returns 获取到的视频信息
  */
 // 新しいHTTPアップロードコントローラーを追加  
-export const uploadVideoFileController = async (ctx: koaCtx, next: koaNext) => {  
-    const uid = parseInt(ctx.cookies.get('uid'), 10);  
-    const token = ctx.cookies.get('token');  
-      
-    // ファイル名を受け取り、署名付きURLを生成  
-    // 修正後（型アサーションを追加）  
-	const data = ctx.request.body as { fileName?: string };  
-	const fileName = data?.fileName || `video-${uid}-${Date.now()}`;
-      
-    const uploadResult = await uploadVideoFileService(fileName, uid, token);  
-    ctx.body = uploadResult;  
-    await next();  
-};
+export const uploadVideoFileController = async (ctx: koaCtx, next: koaNext) => {
+	const uid = parseInt(ctx.cookies.get('uid'), 10)
+	const token = ctx.cookies.get('token')
+
+	// 'files' が存在するかどうかを確認し、'videoFile' を取得
+	const files = (ctx.request as any).files
+	const videoFile = files ? files.videoFile : undefined
+
+	// videoFileが存在しない、または配列の場合はエラーを返す
+	if (!videoFile || Array.isArray(videoFile)) {
+		ctx.status = 400
+		ctx.body = { success: false, message: 'ビデオファイルが見つかりません。' }
+		await next() // nextを呼んでからreturn
+		return
+	}
+
+	// 修正後（型アサーションを追加）
+	const data = ctx.request.body as { fileName?: string }
+	const fileName = data?.fileName || videoFile.originalFilename || `video-${uid}-${Date.now()}`
+	console.log('Received video file:', {
+		originalFilename: videoFile.originalFilename,
+		size: videoFile.size,
+		mimetype: videoFile.mimetype,
+		filepath: videoFile.filepath,
+	});
+
+	const uploadResult = await uploadVideoFileToMinioService(videoFile, fileName, uid, token)
+	ctx.body = uploadResult
+	await next()
+}
 
 /**
  * 获取用于上传视频封面图的预签名 URL

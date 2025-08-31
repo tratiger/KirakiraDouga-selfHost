@@ -57,6 +57,8 @@
 		const file = files[0];
 		const basename = path.fileRoot(file.name);
 		title.value = basename;
+		if (files.length > 0)
+			httpUpload(files);
 	}, { immediate: true });
 
 	/**

@@ -1,3 +1,4 @@
+import { S3Client, PutObjectCommand, CreateBucketCommand, HeadBucketCommand } from '@aws-sdk/client-s3'
 import { Client } from '@elastic/elasticsearch'
 import mongoose, { InferSchemaType, PipelineStage } from 'mongoose'
 import { createMinioPutSignedUrl } from '../minio/index.js' 
@@ -14,23 +15,95 @@ import { EsSchema2TsType } from '../elasticsearchPool/ElasticsearchClusterPoolTy
 import { VideoDocument } from '../elasticsearchPool/template/VideoDocument.js'
 import { createOrUpdateBrowsingHistoryService } from './BrowsingHistoryService.js'
 import { getNextSequenceValueEjectService } from './SequenceValueService.js'
-import { checkUserTokenByUuidService, checkUserTokenService, getUserUid, getUserUuid } from './UserService.js'
+import { checkUserTokenService, checkUserTokenByUuidService, getUserUid, getUserUuid } from '../service/UserService.js'
 import { FollowingSchema } from '../dbPool/schema/FeedSchema.js'
 import { buildBlockListMongooseFilter, checkBlockUserService, checkIsBlockedByOtherUserService } from './BlockService.js'
+import fs from 'fs';
+
 
 // 新しいHTTPアップロードサービスを追加  
-export const uploadVideoFileService = async (fileName: string, uid: number, token: string) => {  
-    if (!(await checkUserTokenService(uid, token)).success) {  
-        return { success: false, message: 'ユーザー認証に失敗しました' };  
+export const uploadVideoFileToMinioService = async (videoFile: any, fileName: string, uid: number, token: string) => {
+    try {
+        // ユーザー認証
+        if (!(await checkUserTokenService(uid, token)).success) {
+            return { success: false, message: 'ユーザー認証に失敗しました' };
+        }
+          
+        // MinIOクライアントの設定
+        const minioEndPoint = process.env.MINIO_END_POINT;
+        const minioPort = process.env.MINIO_PORT ? parseInt(process.env.MINIO_PORT, 10) : 9000;
+        const accessKeyId = process.env.MINIO_ACCESS_KEY_ID;
+        const secretAccessKey = process.env.MINIO_SECRET_ACCESS_KEY;
+        const useSSL = process.env.MINIO_USE_SSL === 'true';
+          
+        if (!minioEndPoint || !accessKeyId || !secretAccessKey) {
+			console.error('MinIO environment variables are not set correctly.');
+            return { success: false, message: 'MinIO設定が不正です' };
+        }
+          
+        const S3 = new S3Client({
+            endpoint: `${useSSL ? 'https' : 'http'}://${minioEndPoint}:${minioPort}`,
+            credentials: { accessKeyId, secretAccessKey },
+            region: 'us-east-1',
+            forcePathStyle: true,
+        });
+          
+        const bucketName = process.env.MINIO_TUS_BUCKET || 'kirakira-storage';
+
+        // バケットの存在を確認し、なければ作成する
+        try {
+            await S3.send(new HeadBucketCommand({ Bucket: bucketName }));
+        } catch (err: any) {
+            if (err.name === 'NoSuchBucket' || err.name === 'NotFound') {
+                try {
+                    await S3.send(new CreateBucketCommand({ Bucket: bucketName }));
+                } catch (createErr) {
+                    console.error(`Failed to create bucket '${bucketName}':`, createErr);
+                    throw createErr;
+                }
+            } else {
+                throw err;
+            }
+        }
+
+        // ファイルをMinIOにアップロード
+        const uploadCommand = new PutObjectCommand({
+            Bucket: bucketName,
+            Key: fileName,
+            Body: fs.createReadStream(videoFile.filepath),
+            ContentType: videoFile.mimetype,
+        });
+          
+        await S3.send(uploadCommand);
+        S3.destroy();
+          
+        // videoIdを生成（既存のロジックを使用）  
+        const session = await mongoose.startSession();  
+        session.startTransaction();  
+          
+        const __VIDEO_SEQUENCE_EJECT__ = [9, 42, 233, 404, 2233, 10388, 10492, 114514];  
+        const videoIdResult = await getNextSequenceValueEjectService('video', __VIDEO_SEQUENCE_EJECT__, 1, 1, session);  
+          
+        if (videoIdResult?.success && videoIdResult.sequenceValue) {  
+            await session.commitTransaction();  
+            session.endSession();  
+              
+            return {   
+                success: true,   
+                videoId: videoIdResult.sequenceValue,  
+                fileName,  
+                message: 'ファイルアップロードが完了しました'   
+            };  
+        } else {  
+            await session.abortTransaction();  
+            session.endSession();  
+            return { success: false, message: 'videoID生成に失敗しました' };  
+        }  
+          
+    } catch (error) {  
+        console.error('ERROR', 'ファイルアップロード失敗:', error);
+        return { success: false, message: 'ファイルアップロードに失敗しました' };  
     }  
-      
-    const signedUrl = await createMinioPutSignedUrl('videos', fileName, 3600);  
-      
-    if (!signedUrl) {  
-        return { success: false, message: 'アップロードURLの生成に失敗しました' };  
-    }  
-      
-    return { success: true, signedUrl, fileName };  
 };
 
 
@@ -1147,4 +1220,3 @@ const checkDeleteVideoRequest = (deleteVideoRequest: DeleteVideoRequestDto): boo
 const checkApprovePendingReviewVideoRequest = (approvePendingReviewVideoRequest: ApprovePendingReviewVideoRequestDto) => {
 	return (!!approvePendingReviewVideoRequest.videoId && typeof approvePendingReviewVideoRequest.videoId === 'number' && approvePendingReviewVideoRequest.videoId >= 0)
 }
-

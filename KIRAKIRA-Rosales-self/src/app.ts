@@ -2,7 +2,6 @@ import cors from '@koa/cors'
 import fs from 'fs'
 import https from 'https'
 import Koa from 'koa'
-import bodyParser from 'koa-bodyparser'
 import { connectMongoDBCluster } from './dbPool/DbClusterPool.js'
 import elasticsearchMiddleware from './middleware/elasticsearchMiddleware.js'
 import router from './route/router.js'
@@ -15,7 +14,6 @@ const app = new Koa()
 // 配置程序 // WARN 注意：顺序很重要
 app
 	.use(elasticsearchMiddleware) // 为 ctx 附加 elasticsearchClient（elasticsearch 集群连接客户端）属性
-	.use(bodyParser())
 	.use(router.routes()) // 使用 koa-router
 	.use(router.allowedMethods()) // 所有路由中间件调用完成，ctx.status 仍为空或 404，程序自动丰富请求的响应头，方便 debug 或 handle
 	.use(cors({
