@@ -166,12 +166,38 @@ export const getVideoFileUploadSignedUrlController = async (ctx: koaCtx, next: k
  * @param next context
  * @returns 用于上传视频封面图的预签名 URL 请求响应
  */
-export const getVideoCoverUploadSignedUrlController = async (ctx: koaCtx, next: koaNext) => {
-	const uid = parseInt(ctx.cookies.get('uid'), 10)
-	const token = ctx.cookies.get('token')
-	ctx.body = await getVideoCoverUploadSignedUrlService(uid, token)
-	await next()
+export const getVideoCoverUploadSignedUrlController = async (ctx: koaCtx, next: koaNext) => {  
+    const uid = parseInt(ctx.cookies.get('uid'), 10)  
+    const token = ctx.cookies.get('token')  
+      
+    // 認証チェック  
+    if (!uid || !token) {  
+        ctx.status = 401  
+        ctx.body = { success: false, message: 'Authentication required' }  
+        return  
+    }  
+      
+    const fileName = `cover_${uid}_${Date.now()}.png`  
+    const bucketName = process.env.MINIO_VIDEO_COVER_BUCKET || 'videos'  
+      
+    const signedUrl = await createMinioPutSignedUrl(bucketName, fileName, 3600)  
+      
+    if (signedUrl) {  
+        ctx.body = {  
+            success: true,  
+            result: {  
+                signedUrl,  
+                fileName  
+            }  
+        }  
+    } else {  
+        ctx.status = 500  
+        ctx.body = { success: false, message: 'Failed to generate signed URL' }  
+    }  
+      
+    await next()  
 }
+
 
 
 /**

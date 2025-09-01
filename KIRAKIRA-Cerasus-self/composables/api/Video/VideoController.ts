@@ -2,6 +2,7 @@ import * as tus from "tus-js-client";
 import { DELETE, GET, POST, uploadFile2CloudflareImages } from "../Common";
 import type { ApprovePendingReviewVideoRequestDto, ApprovePendingReviewVideoResponseDto, CheckVideoExistRequestDto, CheckVideoExistResponseDto, DeleteVideoRequestDto, DeleteVideoResponseDto, GetVideoByKvidRequestDto, GetVideoByKvidResponseDto, GetVideoByUidRequestDto, GetVideoByUidResponseDto, GetVideoCoverUploadSignedUrlResponseDto, PendingReviewVideoResponseDto, SearchVideoByVideoTagIdRequestDto, SearchVideoByVideoTagIdResponseDto, ThumbVideoResponseDto, UploadVideoRequestDto, UploadVideoResponseDto } from "./VideoControllerDto";
 import type { GetVideoFileUploadSignedUrlResponseDto } from './VideoControllerDto';
+import { uploadFile2R2 } from '~/composables/api/Common/index';
 
 const BACK_END_URI = environment.backendUri;
 const VIDEO_API_URI = `${BACK_END_URI}video`;
@@ -14,6 +15,19 @@ const VIDEO_API_URI = `${BACK_END_URI}video`;
 export function getMinioVideoUrl(fileName: string): string {  
     const minioEndpoint = process.env.MINIO_END_POINT || '100.106.146.115:9000';  
     const bucketName = process.env.MINIO_VIDEO_BUCKET || 'kirakira-storage';  
+    const useSSL = process.env.MINIO_USE_SSL === 'false';  
+      
+    return `${useSSL ? 'https' : 'http'}://${minioEndpoint}/${bucketName}/${fileName}`;  
+}
+
+/**  
+ * MinIOに保存されたカバー画像のURLを生成  
+ * @param fileName - ファイル名  
+ * @returns MinIOカバー画像URL  
+ */  
+export function getMinioCoverUrl(fileName: string): string {  
+    const minioEndpoint = process.env.MINIO_END_POINT || '100.106.146.115:9000';  
+    const bucketName = process.env.MINIO_VIDEO_COVER_BUCKET || 'videos';  
     const useSSL = process.env.MINIO_USE_SSL === 'false';  
       
     return `${useSSL ? 'https' : 'http'}://${minioEndpoint}/${bucketName}/${fileName}`;  
@@ -229,14 +243,15 @@ export async function getVideoCoverUploadSignedUrl(): Promise<GetVideoCoverUploa
  * @param signedUrl - 预签名 URL
  * @returns boolean 上传结果
  */
-export async function uploadVideoCover(fileName: string, videoCoverBlobData: Blob, signedUrl: string): Promise<boolean> {
-	try {
-		await uploadFile2CloudflareImages(fileName, signedUrl, videoCoverBlobData, 60000);
-		return true;
-	} catch (error) {
-		console.error("视频封面上传失败，错误信息：", error, { videoCoverBlobData, signedUrl });
-		return false;
-	}
+export async function uploadVideoCover(fileName: string, videoCoverBlobData: Blob, signedUrl: string): Promise<boolean> {  
+    try {  
+        // uploadFile2CloudflareImages の代わりに uploadFile2R2 を使用  
+        await uploadFile2R2(signedUrl, videoCoverBlobData, videoCoverBlobData.type || 'image/png', 60000);  
+        return true;  
+    } catch (error) {  
+        console.error("視频封面上传失败，错误信息：", error, { videoCoverBlobData, signedUrl });  
+        return false;  
+    }  
 }
 
 /**
