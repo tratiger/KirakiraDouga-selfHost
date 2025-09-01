@@ -139,7 +139,7 @@ export const getVideoFileUploadSignedUrlController = async (ctx: koaCtx, next: k
     }  
       
     const fileName = `video_${uid}_${Date.now()}.mp4`  
-    const bucketName = process.env.MINIO_VIDEO_BUCKET || 'videos'  
+    const bucketName = process.env.MINIO_VIDEO_BUCKET || 'video'  
       
     const signedUrl = await createMinioPutSignedUrl(bucketName, fileName, 3600)  
       
