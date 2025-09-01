@@ -12,7 +12,7 @@ const VIDEO_API_URI = `${BACK_END_URI}video`;
  * @returns MinIO動画ファイルURL  
  */  
 export function getMinioVideoUrl(fileName: string): string {  
-    const minioEndpoint = process.env.MINIO_END_POINT || 'localhost:9000';  
+    const minioEndpoint = process.env.MINIO_END_POINT || '100.106.146.115:9000';  
     const bucketName = process.env.MINIO_VIDEO_BUCKET || 'kirakira-storage';  
     const useSSL = process.env.MINIO_USE_SSL === 'false';  
       
