@@ -1,4 +1,6 @@
 <script setup lang="ts">
+	import { getMinioImageUrl } from "~/composables/api/Image/ImageController";
+
 	const props = defineProps<{
 		/** 视频是否正在播放？ */
 		playing?: boolean;
@@ -113,16 +115,13 @@
 							<CheckCard v-for="([filter, style], key) in filters" :key="key" v-model="filterBooleanProxy[key]">
 								{{ filter }}
 								<template #image>
-									<NuxtImg
+									<img
 										:style
-										:provider="environment.cloudflareImageProvider"
-										:src="thumbnail"
+										:src="getMinioImageUrl(thumbnail)"
 										:alt="`preview-${filter}`"
 										:draggable="false"
-										format="avif"
 										width="200"
 										height="200"
-										:placeholder="[20, 20, 100, 2]"
 									/>
 								</template>
 							</CheckCard>

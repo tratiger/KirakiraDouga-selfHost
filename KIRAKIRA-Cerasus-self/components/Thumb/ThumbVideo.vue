@@ -1,4 +1,6 @@
 <script setup lang="ts">
+	import { getMinioImageUrl } from "~/composables/api/Image/ImageController";
+
 	const props = withDefaults(defineProps<{
 		/**
 		 * 最终视频链接。
@@ -44,17 +46,14 @@
 		<div class="card-wrapper">
 			<div v-ripple class="card">
 				<div class="cover-wrapper">
-					<NuxtImg
+					<img
 						v-if="image"
-						:provider="environment.cloudflareImageProvider"
-						:src="image"
+						:src="getMinioImageUrl(image)"
 						alt="cover"
 						class="cover"
 						:draggable="false"
-						format="avif"
 						width="320"
 						height="180"
-						:placeholder="[50, 50, 100, 5]"
 					/>
 				</div>
 				<div class="text-wrapper">

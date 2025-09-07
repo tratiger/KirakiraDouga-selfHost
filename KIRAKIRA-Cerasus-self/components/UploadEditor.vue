@@ -1,6 +1,7 @@
 <script setup lang="ts">
 	import type { DirectFileUploader } from "~/composables/api/Video/VideoController";
 	import { getMinioVideoUrl } from "~/composables/api/Video/VideoController";
+	import { getMinioImageUrl } from "~/composables/api/Image/ImageController";
 	const props = defineProps<{
 		files: File[];
 	}>();
@@ -29,7 +30,6 @@
 	const isUploadingCover = ref<boolean>(false); // 是否正在上传封面图
 	const cropper = ref(); // 图片裁剪器对象
 	const isNetworkImage = computed(() => thumbnailUrl.value !== BASE_THUMBNAIL_URL); // 封面图是静态资源图片还是网图，即用户是否已经完成封面图上传
-	const provider = computed(() => isNetworkImage.value ? environment.cloudflareImageProvider : undefined); // 根据 isNetworkImage 的值判断是否使用 cloudflare 作为 Nuxt Image 提供商
 	// 视频分类
 	const VIDEO_CATEGORY = new Map([
 		["anime", t.category.anime],
@@ -324,11 +324,9 @@
 			<div class="toolbox-card left">
 				<div v-ripple class="cover" @click="thumbnailInput?.click()">
 					<div class="mask">{{ t.select_cover }}</div>
-					<NuxtImg
+					<img
 						v-if="thumbnailUrl"
-						:provider
-						:src="thumbnailUrl"
-						:width="350"
+						:src="isNetworkImage ? getMinioImageUrl(thumbnailUrl) : thumbnailUrl"
 						alt="thumbnail"
 						:draggable="false"
 					/>

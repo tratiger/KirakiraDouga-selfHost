@@ -3,6 +3,8 @@
 </docs>
 
 <script setup lang="ts">
+	import { getMinioImageUrl } from "~/composables/api/Image/ImageController";
+
 	const props = defineProps<{
 		/** 头像网址。 */
 		avatar?: string;
@@ -19,23 +21,17 @@
 		return Number.isFinite(uid) ? `/user/${uid}` : props.to;
 	});
 
-	const provider = computed(() => props.avatar?.startsWith("blob:http") ? undefined : environment.cloudflareImageProvider);
 	const appSettings = useAppSettingsStore();
 </script>
 
 <template>
 	<Comp v-ripple="Boolean(userLink) || Boolean(hoverable)" :class="{ hoverable }">
-		<NuxtImg
+		<img
 			v-if="avatar"
-			:provider
-			:src="avatar"
+			:src="getMinioImageUrl(avatar)"
 			alt="avatar"
 			draggable="false"
-			format="avif"
-			width="100"
-			height="100"
 			:class="{ hoverable }"
-			:placeholder="[20, 20, 100, 2]"
 		/>
 		<Icon v-else :name="appSettings.akkarinGuestAvatar ? 'akkarin' : 'person'" />
 		<div v-if="avatar" class="tint-overlay"></div>
