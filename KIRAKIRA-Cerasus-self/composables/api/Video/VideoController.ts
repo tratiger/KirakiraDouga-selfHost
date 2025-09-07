@@ -232,13 +232,28 @@ export async function getVideoCoverUploadSignedUrl(): Promise<GetVideoCoverUploa
  * @returns boolean 上传结果
  */
 export async function uploadVideoCover(fileName: string, videoCoverBlobData: Blob, signedUrl: string): Promise<boolean> {
-	try {
-		await uploadFile2CloudflareImages(fileName, signedUrl, videoCoverBlobData, 60000);
-		return true;
-	} catch (error) {
-		console.error("视频封面上传失败，错误信息：", error, { videoCoverBlobData, signedUrl });
-		return false;
-	}
+	return new Promise((resolve, reject) => {
+		const xhr = new XMLHttpRequest();
+		xhr.withCredentials = false;
+
+		xhr.onload = () => {
+			if (xhr.status === 200 || xhr.status === 204) {
+				resolve(true);
+			} else {
+				console.error("视频封面上传失败，错误信息：", xhr.status, { videoCoverBlobData, signedUrl });
+				resolve(false);
+			}
+		};
+
+		xhr.onerror = () => {
+			console.error("视频封面上传失败，错误信息：", "Network Error", { videoCoverBlobData, signedUrl });
+			resolve(false);
+		};
+
+		xhr.open('PUT', signedUrl);
+		xhr.setRequestHeader('Content-Type', videoCoverBlobData.type || 'image/jpeg');
+		xhr.send(videoCoverBlobData);
+	});
 }
 
 /**
