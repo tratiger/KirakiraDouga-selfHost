@@ -106,9 +106,6 @@
 			</div>
 		</DefineCountCard>
 
-		<InfoBar type="warning" :title="t.severity.warning">
-			{{ t.under_construction.feature_admin_only }}
-		</InfoBar>
 
 		<!-- TODO: 临时 SoftButton，之后请在 UploadEditor 的 Submit 按钮左边放一个取消。 -->
 		<SoftButton icon="close" v-if="showEditor" @click="cancelUpdate" />
