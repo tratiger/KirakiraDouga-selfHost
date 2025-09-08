@@ -5,7 +5,7 @@
  */
 export function getMinioImageUrl(fileName: string): string {
 	const minioEndpoint = process.env.MINIO_END_POINT || "localhost:9000";
-	const bucketName = process.env.MINIO_IMAGE_BUCKET || "kirakira-images"; // 画像用のバケット名
+	const bucketName = process.env.MINIO_IMAGE_BUCKET || "videos"; // 画像用のバケット名
 	const useSSL = process.env.MINIO_USE_SSL === "true";
 
 	// NOTE: getMinioVideoUrlの実装を参考にしています。
