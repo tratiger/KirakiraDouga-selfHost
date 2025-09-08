@@ -3,6 +3,8 @@
 </docs>
 
 <script setup lang="ts">
+	import { getMinioImageUrl } from "~/composables/api/Image/ImageController";
+
 	const props = withDefaults(defineProps<{
 		/** 图片。 */
 		image?: string;
@@ -16,7 +18,7 @@
 <template>
 	<Comp role="checkbox" :aria-checked="checked" :class="{ checked }" :tabindex="0" @click="checked = !checked">
 		<div v-ripple class="card">
-			<slot name="image"><NuxtImg :src="image" /></slot>
+			<slot name="image"><img v-if="image" :src="getMinioImageUrl(image)" /></slot>
 			<div class="overlay"></div>
 			<div class="float">
 				<Checkbox v-model:single="checked" readonly />

@@ -25,15 +25,10 @@
 	<Comp v-ripple role="listitem">
 		<div :class="{ pictorial: image || icon }">
 			<div v-if="image" class="image">
-				<NuxtImg
+				<img
 					:src="image"
-					:provider="environment.cloudflareImageProvider"
 					alt="image"
 					draggable="false"
-					format="avif"
-					width="64"
-					height="64"
-					placeholder
 				/>
 			</div>
 			<Icon v-else-if="icon" :name="icon" :filled class="item-icon" />

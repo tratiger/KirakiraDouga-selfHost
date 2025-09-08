@@ -107,13 +107,11 @@
 				:checked="item.color === DEFAULT_PALETTE && cookieThemeColor === 'wallpaper' && !backgroundImages.shown || undefined"
 			>
 				<div class="palette-card">
-					<NuxtImg
+					<img
 						:src="getPaletteImage(item.color)"
 						alt="Is the Order a Rabbit?"
-						format="avif"
-						width="320px"
-						height="180px"
-						fit="outside"
+						width="320"
+						height="180"
 					/>
 					<div class="overlay light"></div>
 					<div class="overlay color"></div>
@@ -130,7 +128,7 @@
 				v-model="cookieThemeColor"
 				:title="t.custom"
 				class="custom-color"
-				@click="e => flyoutColorPicker = [e]"
+				@click="(e: MouseEvent) => flyoutColorPicker = [e]"
 			>
 				<div class="palette-card">
 					<div class="hue-gradient"></div>
@@ -175,7 +173,7 @@
 							v-model="backgroundImages.backgroundImage"
 							class="preview-bg-image force-color"
 							:style="{ '--accent-50': item.color }"
-							@contextmenu.prevent="e => item.key !== -1 && (backgroundImageItemMenu = [e, item, e.currentTarget])"
+							@contextmenu.prevent="(e: MouseEvent) => item.key !== -1 && (backgroundImageItemMenu = [e, item, e.currentTarget as HTMLElement])"
 						>
 							<Icon v-if="item.key === -1" name="prohibited" />
 							<img v-else :src="item.url" alt="" />

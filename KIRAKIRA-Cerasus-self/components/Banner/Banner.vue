@@ -37,6 +37,8 @@
 	});
 
 	const banner = "/static/images/banner-20220717.png";
+
+	const currentPageItem = computed(() => pageListStandard.find(i => i.id === currentPage.value));
 </script>
 
 <template>
@@ -50,12 +52,12 @@
 			</div>
 			<Transition name="page-jump-in">
 				<LogoCover v-if="currentPage === 'home'" noAnimation />
-				<NuxtImg v-else-if="currentPage === 'user'" class="page-user" :src="banner" :key="banner" />
+				<img v-else-if="currentPage === 'user'" class="page-user" :src="banner" :key="banner" />
 				<BannerStandard
 					v-else
-					:name="t(2)[pageListStandard.find(i => i.id === currentPage)!.name]"
-					:icon="pageListStandard.find(i => i.id === currentPage)!.icon"
-					:englishName="pageListStandard.find(i => i.id === currentPage)!.englishName"
+					:name="t(2)[currentPageItem!.name]"
+					:icon="currentPageItem!.icon"
+					:englishName="currentPageItem!.englishName"
 				/>
 			</Transition>
 			<div class="shadow"></div>

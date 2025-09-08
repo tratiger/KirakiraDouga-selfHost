@@ -1,4 +1,6 @@
 <script setup lang="ts">
+	import { getMinioImageUrl } from "~/composables/api/Image/ImageController";
+
 	const banner = "static/images/banner-20220717.png";
 
 	// const avatar = "/static/images/avatars/aira.webp";
@@ -7,6 +9,12 @@
 
 	const newAvatar = ref<string>(); // 新上传的头像
 	const correctAvatar = computed(() => newAvatar.value ?? selfUserInfoStore.userInfo.avatar); // 正确显示的头像（如果用户没有新上传头像，则使用全局变量中的旧头像）
+	const correctAvatarUrl = computed(() => {
+		const avatar = correctAvatar.value;
+		if (avatar?.startsWith("blob:"))
+			return avatar;
+		return getMinioImageUrl(avatar ?? "");
+	});
 	const userAvatarUploadFile = ref<string | undefined>(); // 用户上传的头像文件 Blob
 	const isAvatarCropperOpen = ref(false); // 用户头像图片裁剪器是否开启
 	const newAvatarImageBlob = ref<Blob>(); // 用户裁剪后的头像
@@ -267,12 +275,12 @@
 		</Modal>
 
 		<div v-ripple class="banner">
-			<NuxtImg :src="banner" alt="banner" draggable="false" format="avif" />
+			<img :src="banner" alt="banner" draggable="false" />
 			<span>{{ t.profile.edit_banner }}</span>
 		</div>
 
 		<div class="change-avatar" @click="handleUploadAvatarImage">
-			<UserAvatar :avatar="correctAvatar" hoverable />
+			<UserAvatar :avatar="correctAvatarUrl" hoverable />
 			<span>{{ t.profile.edit_avatar }}</span>
 			<input ref="userAvatarFileInput" type="file" accept="image/*" hidden />
 		</div>

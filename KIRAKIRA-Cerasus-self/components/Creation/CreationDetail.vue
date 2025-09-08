@@ -1,5 +1,6 @@
 <script setup lang="ts">
 	import NumberFlow from "@number-flow/vue";
+	import { getMinioImageUrl } from "~/composables/api/Image/ImageController";
 
 	const props = withDefaults(defineProps<{
 		/** 投稿日期？修改日期？ */ // TODO: 投稿日期？修改日期？两个日期我觉得应该都要显示。
@@ -100,12 +101,10 @@
 	 * 下载封面。
 	 */
 	function downloadCover() {
-		if (props.cover) {
-			const image = useImage();
-			const IMAGE_MAX_WIDTH = 999999;
-			window.open(image(props.cover, { width: IMAGE_MAX_WIDTH }, { provider: environment.cloudflareImageProvider }), "_blank"); // TODO: 先暂时改为在新标签页中直接打开图片的样式，而非下载图片
-			// downloadFile(props.cover, `${props.title} (kv${props.videoId})`);
-		} else useToast(t.toast.something_went_wrong, "error");
+		if (props.cover)
+			window.open(getMinioImageUrl(props.cover), "_blank");
+		else
+			useToast(t.toast.something_went_wrong, "error");
 	}
 
 	/**
@@ -153,7 +152,7 @@
 					<span class="pe">{{ t.watch_later }}</span>
 				</div>
 				<div>
-					<SoftButton v-tooltip:bottom="t.more" icon="more_vert" class="pe" @click="e => menuMoreAction = [e, 'bottom']" />
+					<SoftButton v-tooltip:bottom="t.more" icon="more_vert" class="pe" @click="(e: MouseEvent) => menuMoreAction = [e, 'bottom']" />
 					<span class="pe">{{ t.more }}</span>
 				</div>
 
@@ -182,7 +181,7 @@
 					<div v-if="tag.originTagName" class="original-tag-name">{{ tag.originTagName }}</div>
 				</div>
 			</Tag>
-			<Tag class="add-tag" @click="e => flyoutTag = [e, 'y']"><Icon name="add" /></Tag>
+			<Tag class="add-tag" @click="(e: MouseEvent) => flyoutTag = [e, 'y']"><Icon name="add" /></Tag>
 		</div>
 		<FlyoutTag v-model="flyoutTag" />
 	</Comp>

@@ -1,4 +1,4 @@
-import { GET, POST, uploadFile2CloudflareImages } from "api/Common";
+import { GET, POST } from "api/Common";
 import type {
 	AdminClearUserInfoRequestDto,
 	AdminClearUserInfoResponseDto, AdminGetUserInfoResponseDto,
@@ -202,13 +202,28 @@ export const getUserAvatarUploadSignedUrl = async (): Promise<GetUserAvatarUploa
  * @returns 是否上传成功，成功返回 true，失败返回 false
  */
 export const uploadUserAvatar = async (fileName: string, avatarBlobData: Blob, signedUrl: string): Promise<boolean> => {
-	try {
-		await uploadFile2CloudflareImages(fileName, signedUrl, avatarBlobData, 60000);
-		return true;
-	} catch (error) {
-		console.error("ERROR", "Failed to upload avatar:", error, { avatarBlobData, signedUrl });
-		return false;
-	}
+	return new Promise((resolve) => {
+		const xhr = new XMLHttpRequest();
+		xhr.withCredentials = false;
+
+		xhr.onload = () => {
+			if (xhr.status === 200 || xhr.status === 204) {
+				resolve(true);
+			} else {
+				console.error("ERROR", "Failed to upload avatar:", xhr.status, { avatarBlobData, signedUrl });
+				resolve(false);
+			}
+		};
+
+		xhr.onerror = () => {
+			console.error("ERROR", "Failed to upload avatar:", "Network Error", { avatarBlobData, signedUrl });
+			resolve(false);
+		};
+
+		xhr.open('PUT', signedUrl);
+		xhr.setRequestHeader('Content-Type', avatarBlobData.type || 'image/jpeg');
+		xhr.send(avatarBlobData);
+	});
 };
 
 /**
