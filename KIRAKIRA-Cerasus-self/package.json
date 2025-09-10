@@ -30,6 +30,7 @@
 		"dev-local-prod": "cross-env VITE_BACKEND_URI=https://localhost:9999 VITE_CLOUDFLARE_IMAGES_PROVIDER=cloudflare-prod VITE_CLOUDFLARE_STREAM_CUSTOMER_SUBDOMAIN=https://customer-yvgxn6arnuae3q89.cloudflarestream.com/ nuxt dev --host --https --ssl-cert server/server.cer --ssl-key server/server.key",
 		"dev-stg-demo": "cross-env VITE_BACKEND_URI=https://stg-rosales.kirafile.com VITE_CLOUDFLARE_IMAGES_PROVIDER=cloudflare-stg VITE_CLOUDFLARE_STREAM_CUSTOMER_SUBDOMAIN=https://customer-o9xrvgnj5fidyfm4.cloudflarestream.com/ nuxt dev --host --https --ssl-cert server/server.cer --ssl-key server/server.key",
 		"dev-live-demo": "cross-env VITE_BACKEND_URI=https://rosales.kirakira.moe VITE_CLOUDFLARE_IMAGES_PROVIDER=cloudflare-prod VITE_CLOUDFLARE_STREAM_CUSTOMER_SUBDOMAIN=https://customer-yvgxn6arnuae3q89.cloudflarestream.com/ nuxt dev --host --https --ssl-cert server/server.cer --ssl-key server/server.key",
+		"build-local-opt": "cross-env VITE_BACKEND_URI=https://100.106.146.115:9999 nuxt build",
 		"build": "nuxt build",
 		"generate": "nuxt generate",
 		"preview": "nuxt preview",

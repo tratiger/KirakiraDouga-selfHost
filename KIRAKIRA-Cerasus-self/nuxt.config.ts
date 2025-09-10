@@ -23,7 +23,7 @@ export default defineNuxtConfig({
 	},
 
 	devtools: {
-		enabled: true,
+		enabled: false,
 	},
 
 	plugins: [
@@ -46,7 +46,7 @@ export default defineNuxtConfig({
 		"modules/theme/module.ts",
 		"modules/noscript/module.ts",
 		"modules/unsupported-browsers/module.ts",
-		dev && "modules/components-globalized/module.ts",
+		// dev && "modules/components-globalized/module.ts",
 		"@nuxtjs/robots",
 		"@nuxtjs/sitemap",
 	],
