@@ -4,7 +4,7 @@
  * @returns MinIO画像ファイルURL
  */
 export function getMinioImageUrl(fileName: string): string {
-	const minioEndpoint = process.env.MINIO_END_POINT || "localhost:9000";
+	const minioEndpoint = process.env.MINIO_END_POINT || "100.106.146.115:9000";
 	const bucketName = process.env.MINIO_IMAGE_BUCKET || "videos"; // 画像用のバケット名
 	const useSSL = process.env.MINIO_USE_SSL === "true";
 
