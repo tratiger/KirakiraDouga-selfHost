@@ -13,3 +13,19 @@ export function getMinioImageUrl(fileName: string): string {
 	return `https://${minioEndpoint}/${bucketName}/${fileName}`;
 	// return `${useSSL ? 'https' : 'http'}://${minioEndpoint}/${bucketName}/${fileName}`;
 }
+
+/**
+ * MinIOに保存されたアバター画像のURLを生成
+ * @param fileName - ファイル名
+ * @returns MinIOアバター画像URL
+ */
+export function getMinioAvatarUrl(fileName: string): string {
+	const config = useRuntimeConfig();
+	const minioEndpoint = config.public.minioEndPoint || "100.106.146.115:9000";
+	const bucketName = config.public.minioUsersBucket || "users"; // アバター画像用のバケット名
+	const useSSL = config.public.minioUseSsl === "true";
+
+		// なぜか変わらないのでハードコードしています。
+	return `https://${minioEndpoint}/${bucketName}/${fileName}`;
+	//return `${useSSL ? 'https' : 'http'}://${minioEndpoint}/${bucketName}/${fileName}`;
+}

@@ -28,7 +28,7 @@
 	<Comp v-ripple="Boolean(userLink) || Boolean(hoverable)" :class="{ hoverable }">
 		<img
 			v-if="avatar"
-			:src="getMinioImageUrl(avatar)"
+			:src="avatar"
 			alt="avatar"
 			draggable="false"
 			:class="{ hoverable }"

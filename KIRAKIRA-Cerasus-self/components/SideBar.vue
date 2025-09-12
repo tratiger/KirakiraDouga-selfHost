@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { getMinioAvatarUrl } from "~/composables/api/Image/ImageController";
 	// import { numbers } from "virtual:scss-var:theme/_variables";
 	// onMounted(() => console.log(numbers));
 	// const windowSize = useWindowSize();
@@ -88,7 +89,7 @@
 		<UserAvatar
 			v-if="selfUserInfoStore.isEffectiveCheckOnce"
 			v-tooltip="selfUserInfoStore.isLogined ? selfUserInfoStore.userInfo.userNickname : t.login"
-			:avatar="selfUserInfoStore.isLogined && !selfUserInfoStore.tempHideAvatarFromSidebar ? selfUserInfoStore.userInfo.avatar : undefined"
+			:avatar="selfUserInfoStore.isLogined && !selfUserInfoStore.tempHideAvatarFromSidebar && selfUserInfoStore.userInfo.avatar ? getMinioAvatarUrl(selfUserInfoStore.userInfo.avatar) : undefined"
 			hoverable
 		/>
 	</DefineAvatar>

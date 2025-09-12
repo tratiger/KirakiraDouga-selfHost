@@ -280,6 +280,12 @@
 					dash: {
 						ignoreMinBufferTime: true, // @see https://shaka-player-demo.appspot.com/docs/api/
 					},
+					defaultPresentationDelay: 0,
+					hls: {},
+				},
+				streaming: {
+					useNativeHlsOnSafari: true,
+					forceTransmuxTS: false, // iOS で MPEG-TS をそのまま扱えるようにする（うまく動いていません！！問題は解決していません）
 				},
 			});
 

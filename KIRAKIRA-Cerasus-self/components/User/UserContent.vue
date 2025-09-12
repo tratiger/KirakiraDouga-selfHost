@@ -5,6 +5,7 @@
 </docs>
 
 <script setup lang="ts">
+import { getMinioAvatarUrl } from "~/composables/api/Image/ImageController";
 	import { LocaleLink } from "#components";
 	// import makeFullwidth from "pomsky/fullwidth.pom";
 
@@ -60,13 +61,13 @@
 		</Transition>
 
 		<slot v-if="!avatarInside" name="avatar">
-			<UserAvatar :avatar :uid :to />
+			<UserAvatar :avatar="props.avatar ? getMinioAvatarUrl(props.avatar) : undefined" :uid :to />
 		</slot>
 
 		<component :is="to ? LocaleLink : 'div'" class="container link lite" :to>
 			<div class="above">
 				<div v-if="avatarInside" class="user-avatar">
-					<UserAvatar :avatar :uid :to />
+					<UserAvatar :avatar="props.avatar ? getMinioAvatarUrl(props.avatar) : undefined" :uid :to />
 				</div>
 
 				<div class="info">

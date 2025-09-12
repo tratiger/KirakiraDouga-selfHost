@@ -1,5 +1,5 @@
 <script setup lang="ts">
-	import { getMinioImageUrl } from "~/composables/api/Image/ImageController";
+	import { getMinioAvatarUrl } from "~/composables/api/Image/ImageController";
 
 	const banner = "static/images/banner-20220717.png";
 
@@ -13,8 +13,15 @@
 		const avatar = correctAvatar.value;
 		if (avatar?.startsWith("blob:"))
 			return avatar;
-		return getMinioImageUrl(avatar ?? "");
+		const minioUrl = getMinioAvatarUrl(avatar ?? "");
+		try {
+			return new URL(minioUrl).toString();
+		} catch (e) {
+			console.error("Invalid MinIO URL:", minioUrl, e);
+			return minioUrl; // Fallback to original if URL is invalid
+		}
 	});
+console.log("DEBUG: correctAvatarUrl:", correctAvatarUrl.value);
 	const userAvatarUploadFile = ref<string | undefined>(); // 用户上传的头像文件 Blob
 	const isAvatarCropperOpen = ref(false); // 用户头像图片裁剪器是否开启
 	const newAvatarImageBlob = ref<Blob>(); // 用户裁剪后的头像
@@ -95,22 +102,32 @@
 	 * 修改头像事件，向服务器提交新的图片。
 	 */
 	async function handleSubmitAvatarImage() {
+		console.log('DEBUG: handleSubmitAvatarImage called');
 		try {
 			const blobImageData = newAvatarImageBlob.value;
 			if (blobImageData) {
+				console.log('DEBUG: newAvatarImageBlob.value is not undefined. Value:', blobImageData);
+				console.log('DEBUG: Calling getUserAvatarUploadSignedUrl');
 				const userAvatarUploadSignedUrlResult = await api.user.getUserAvatarUploadSignedUrl();
 				const userAvatarUploadSignedUrl = userAvatarUploadSignedUrlResult.userAvatarUploadSignedUrl;
 				const userAvatarUploadFilename = userAvatarUploadSignedUrlResult.userAvatarFilename;
-				if (userAvatarUploadSignedUrlResult.success && userAvatarUploadSignedUrl && userAvatarUploadFilename) {
-					const uploadResult = await api.user.uploadUserAvatar(userAvatarUploadFilename, blobImageData, userAvatarUploadSignedUrl);
-					if (uploadResult) {
-						newAvatar.value = userAvatarUploadFilename;
-						clearBlobUrl(); // 释放内存
-					}
+				if (!userAvatarUploadSignedUrlResult.success || !userAvatarUploadSignedUrl || !userAvatarUploadFilename) {
+					useToast(t.toast.something_went_wrong, "error");
+					console.error("ERROR", "Failed to get signed URL for avatar upload.", userAvatarUploadSignedUrlResult);
+					return;
+				}
+				const uploadResult = await api.user.uploadUserAvatar(userAvatarUploadFilename, blobImageData, userAvatarUploadSignedUrl);
+				if (uploadResult) {
+					newAvatar.value = userAvatarUploadFilename;
+					clearBlobUrl(); // 释放内存
+				} else {
+					useToast(t.toast.avatar_upload_failed, "error");
+					console.error("ERROR", "Failed to upload avatar.", uploadResult);
 				}
 			} else {
+				console.log('DEBUG: newAvatarImageBlob.value is undefined.');
 				useToast(t.toast.something_went_wrong, "error");
-				console.error("ERROR", "Failed to get cropped image data.");
+				console.error("ERROR", "newAvatarImageBlob.value is undefined. Image data not available for upload.");
 			}
 		} catch (error) {
 			useToast(t.toast.avatar_upload_failed, "error");

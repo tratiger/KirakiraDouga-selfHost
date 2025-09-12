@@ -4,6 +4,7 @@
 </docs>
 
 <script setup lang="ts">
+import { getMinioAvatarUrl } from "~/composables/api/Image/ImageController";
 	const selfUserInfoStore = useSelfUserInfoStore();
 	const isAdmin = computed(() => selfUserInfoStore.userInfo.roles?.includes("administrator"));
 
@@ -113,7 +114,7 @@
 			<h4>确定要封禁这个用户吗？</h4>
 			<div class="block-user-display">
 				<div class="user">
-					<UserAvatar :avatar="criminalUserInfo?.avatar" />
+					<UserAvatar :avatar="criminalUserInfo?.avatar ? getMinioAvatarUrl(criminalUserInfo.avatar) : undefined" />
 					<div class="texts">
 						<div class="names">
 							<span class="username">{{ criminalUserInfo?.username }}</span> <span v-if="criminalUserInfo?.userNickname">/{{ criminalUserInfo?.userNickname }}</span>
@@ -158,7 +159,7 @@
 			<SettingsChipItem
 				v-for="user in blockedUser?.result"
 				:key="user?.username"
-				:image="user?.avatar"
+				:image="user?.avatar ? getMinioAvatarUrl(user.avatar) : undefined"
 				:details="`UID: ${user.uid} Name: ${user?.username}`"
 				trailingIcon="close"
 				@trailingIconClick="() => reactivateUserByUID(user.uid)"

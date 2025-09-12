@@ -3,6 +3,7 @@
 </docs>
 
 <script setup lang="ts">
+import { getMinioAvatarUrl } from "~/composables/api/Image/ImageController";
 	const props = withDefaults(defineProps<{
 		/** 视频 ID。 */
 		videoId: number;
@@ -71,7 +72,7 @@
 	<Comp>
 		<HeadingComments :count="commentsCount" />
 		<div class="send">
-			<UserAvatar :avatar="selfUserInfoStore.userAvatar" />
+			<UserAvatar :avatar="selfUserInfoStore.userInfo.avatar ? getMinioAvatarUrl(selfUserInfoStore.userInfo.avatar) : undefined" />
 			<TextEditorRtf :videoId :editable />
 		</div>
 		<div class="toolbar">
@@ -104,7 +105,7 @@
 					:commentRoute="comment.commentRoute"
 					:nickname="comment.userInfo?.userNickname"
 					:username="comment.userInfo?.username"
-					:avatar="comment.userInfo?.avatar"
+					:avatar="comment.userInfo && comment.userInfo.avatar ? getMinioAvatarUrl(comment.userInfo.avatar) : undefined"
 					:date="new Date(comment.editDateTime)"
 					:upvote_score="comment.upvoteCount"
 				>

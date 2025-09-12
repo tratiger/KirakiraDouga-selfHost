@@ -4,6 +4,7 @@
 </docs>
 
 <script setup lang="ts">
+import { getMinioAvatarUrl } from "~/composables/api/Image/ImageController";
 	const selfUserInfoStore = useSelfUserInfoStore();
 	const isAdmin = computed(() => selfUserInfoStore.userInfo.roles?.includes("administrator"));
 
@@ -158,7 +159,7 @@
 			<p>如果该用户的 UUID 被占用，则无法清空，请联系开发组解决。</p>
 			<div class="clear-user-display">
 				<div class="user">
-					<UserAvatar :avatar="clearedUserInfo?.avatar" />
+					<UserAvatar :avatar="clearedUserInfo?.avatar ? getMinioAvatarUrl(clearedUserInfo.avatar) : undefined" />
 					<div class="texts">
 						<div class="names">
 							<span class="username">{{ clearedUserInfo?.username }}</span> <span v-if="clearedUserInfo?.userNickname">/{{ clearedUserInfo?.userNickname }}</span>
@@ -216,7 +217,7 @@
 			<SettingsChipItem
 				v-for="user in users?.result"
 				:key="user.uid"
-				:image="user.avatar"
+				:image="user.avatar ? getMinioAvatarUrl(user.avatar) : undefined"
 				icon="account_circle"
 				:details="`UID ${user.uid}, UUID ${user.UUID}` + (user.signature?.trim() ? ` - ${user.signature}` : '')"
 				trailingIcon="open_in_new"
@@ -238,7 +239,7 @@
 			<SettingsChipItem
 				v-for="user in users?.result"
 				:key="user.uid"
-				:image="user.avatar"
+				:image="user.avatar ? getMinioAvatarUrl(user.avatar) : undefined"
 				icon="account_circle"
 				:details="`UID ${user.uid}, UUID ${user.UUID}` + (user.signature?.trim() ? ` - ${user.signature}` : '')"
 				trailingIcon="check"
