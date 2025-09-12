@@ -3,6 +3,7 @@
 </docs>
 
 <script setup lang="ts">
+import { getMinioAvatarUrl } from "~/composables/api/Image/ImageController";
 	const shown = defineModel<boolean>({ default: false });
 
 	const drawerItems: { name: string; icon: DeclaredIcons; route?: string }[] = [
@@ -38,7 +39,7 @@
 		<div class="user">
 			<UserAvatar
 				v-tooltip="selfUserInfoStore.isLogined ? selfUserInfoStore.userInfo.userNickname : t.login"
-				:avatar="selfUserInfoStore.isLogined ? selfUserInfoStore.userInfo.avatar : undefined"
+				:avatar="selfUserInfoStore.isLogined && selfUserInfoStore.userInfo.avatar ? getMinioAvatarUrl(selfUserInfoStore.userInfo.avatar) : undefined"
 				@click="onClickUser"
 			/>
 			<p class="nickname">{{ selfUserInfoStore.isLogined ? selfUserInfoStore.userInfo.userNickname : t.pleaseLogin }}</p>

@@ -6,10 +6,10 @@
 
 **重要:** このプロジェクトは有志による派生版であり、オリジナルのKIRAKIRA☆DOUGA Project Teamによって公式に提供・保証・推奨されるものではありません。
 
-### ライセンス
+## ライセンス
 オリジナルのソフトウェアは、BSD3-Clauseのライセンスに基づいています。
 
-### 実行スクリプト
+## 実行スクリプト
 ・開発環境では　フロント：pnpm install、pnpm dev-local  バック：pnpm install、pnpm run dev
 
 以下まだ動作不完全
@@ -22,7 +22,7 @@ cross-env VITE_BACKEND_URI=https://your-backend-url.com pnpm build
 
 cross-env VITE_BACKEND_URI=https://your-backend-url.com pnpm preview
 
-### 注意
+## 注意
 ・envファイルを読み込んでください
 
 ・動画が読み込めない場合は、証明書がブラウザにブロックされている可能性があるので、一度URLにアクセスして信頼してください。
@@ -37,7 +37,7 @@ $ mc admin config set myminio api cors_allow_origin="https://frontend.example.co
 
 #変更を有効化するために MinIO を再起動（systemd または docker restart）
 
-### コミットメッセージ
+## コミットメッセージ
 - **feat**: 新しい機能
 - **fix**: バグの修正
 - **docs**: ドキュメントのみの変更

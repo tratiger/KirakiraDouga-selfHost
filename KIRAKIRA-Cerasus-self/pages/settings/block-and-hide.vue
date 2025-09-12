@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { getMinioAvatarUrl } from "~/composables/api/Image/ImageController";
 	const selfUserInfo = useSelfUserInfoStore();
 	const currentLanguage = computed(getCurrentLocale); // 当前用户的语言
 
@@ -649,7 +650,7 @@
 			<SettingsChipItem
 				v-for="blockUser in blockUserList?.result"
 				:key="blockUser.uid"
-				:image="blockUser.avatar"
+				:image="blockUser.avatar ? getMinioAvatarUrl(blockUser.avatar) : undefined"
 				icon="placeholder"
 				:details="t.addition_date + t.colon + formatLocalizationSemanticDateTime(blockUser.createDateTime, 2)"
 				trailingIcon="delete"
@@ -669,7 +670,7 @@
 			<SettingsChipItem
 				v-for="hideUser in hideUserList?.result"
 				:key="hideUser.uid"
-				:image="hideUser.avatar"
+				:image="hideUser.avatar ? getMinioAvatarUrl(hideUser.avatar) : undefined"
 				icon="placeholder"
 				:details="t.addition_date + t.colon + formatLocalizationSemanticDateTime(hideUser.createDateTime, 2)"
 				trailingIcon="delete"
@@ -757,7 +758,7 @@
 			<h4>确定要屏蔽这个用户吗？</h4>
 			<div class="user-info-alert-display">
 				<div class="user">
-					<UserAvatar :avatar="pendingBlockUserInfo?.avatar" />
+					<UserAvatar :avatar="pendingBlockUserInfo?.avatar ? getMinioAvatarUrl(pendingBlockUserInfo.avatar) : undefined" />
 					<div class="texts">
 						<div class="names">
 							<span class="username">{{ pendingBlockUserInfo?.username }}</span> <span v-if="pendingBlockUserInfo?.userNickname">/{{ pendingBlockUserInfo?.userNickname }}</span>
@@ -785,7 +786,7 @@
 			<h4>确定要隐藏这个用户吗？</h4>
 			<div class="user-info-alert-display">
 				<div class="user">
-					<UserAvatar :avatar="pendingHideUserInfo?.avatar" />
+					<UserAvatar :avatar="pendingHideUserInfo?.avatar ? getMinioAvatarUrl(pendingHideUserInfo.avatar) : undefined" />
 					<div class="texts">
 						<div class="names">
 							<span class="username">{{ pendingHideUserInfo?.username }}</span> <span v-if="pendingHideUserInfo?.userNickname">/{{ pendingHideUserInfo?.userNickname }}</span>

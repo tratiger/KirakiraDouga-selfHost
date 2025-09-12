@@ -191,7 +191,15 @@ export async function userLogout(props: { appSettingsStore: AppSettingsStoreType
  * @returns 获取用户头像上传的预签名 URL 的请求响应
  */
 export const getUserAvatarUploadSignedUrl = async (): Promise<GetUserAvatarUploadSignedUrlResponseDto> => {
-	return await GET(`${USER_API_URI}/avatar/preUpload`, { credentials: "include" }) as GetUserAvatarUploadSignedUrlResponseDto;
+	const result = await GET(`${USER_API_URI}/avatar/preUpload`, { credentials: "include" }) as GetUserAvatarUploadSignedUrlResponseDto;
+	console.log("DEBUG: getUserAvatarUploadSignedUrl - Result:", result);
+	if (result.success) {
+		console.log("DEBUG: getUserAvatarUploadSignedUrl - Signed URL:", result.userAvatarUploadSignedUrl);
+		console.log("DEBUG: getUserAvatarUploadSignedUrl - Filename:", result.userAvatarFilename);
+	} else {
+		console.error("ERROR: getUserAvatarUploadSignedUrl - Failed to get signed URL:", result.message);
+	}
+	return result;
 };
 
 /**
@@ -202,7 +210,7 @@ export const getUserAvatarUploadSignedUrl = async (): Promise<GetUserAvatarUploa
  * @returns 是否上传成功，成功返回 true，失败返回 false
  */
 export const uploadUserAvatar = async (fileName: string, avatarBlobData: Blob, signedUrl: string): Promise<boolean> => {
-	return new Promise((resolve) => {
+	return new Promise((resolve, reject) => {
 		const xhr = new XMLHttpRequest();
 		xhr.withCredentials = false;
 
@@ -210,17 +218,39 @@ export const uploadUserAvatar = async (fileName: string, avatarBlobData: Blob, s
 			if (xhr.status === 200 || xhr.status === 204) {
 				resolve(true);
 			} else {
-				console.error("ERROR", "Failed to upload avatar:", xhr.status, { avatarBlobData, signedUrl });
-				resolve(false);
+				const errorInfo = {
+					status: xhr.status,
+					statusText: xhr.statusText,
+					responseText: xhr.responseText,
+					avatarBlobData,
+					signedUrl,
+				};
+				console.error("ERROR", "Failed to upload avatar:", errorInfo);
+				reject(new Error(`Failed to upload avatar: ${xhr.status} ${xhr.statusText}`));
 			}
 		};
 
 		xhr.onerror = () => {
-			console.error("ERROR", "Failed to upload avatar:", "Network Error", { avatarBlobData, signedUrl });
-			resolve(false);
+			const errorInfo = {
+				status: xhr.status,
+				statusText: xhr.statusText,
+				responseText: xhr.responseText,
+				avatarBlobData,
+				signedUrl,
+			};
+			console.error("ERROR", "Failed to upload avatar:", "Network Error", errorInfo);
+			reject(new Error("Network Error during avatar upload."));
 		};
 
-		xhr.open('PUT', signedUrl);
+		let cleanedSignedUrl = signedUrl;
+		if (signedUrl.startsWith("blob:")) {
+			const urlParts = signedUrl.split("blob:");
+			if (urlParts.length > 1) {
+				cleanedSignedUrl = urlParts[1];
+			}
+		}
+
+		xhr.open('PUT', cleanedSignedUrl);
 		xhr.setRequestHeader('Content-Type', avatarBlobData.type || 'image/jpeg');
 		xhr.send(avatarBlobData);
 	});

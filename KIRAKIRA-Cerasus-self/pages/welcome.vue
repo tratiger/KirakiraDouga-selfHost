@@ -3,6 +3,7 @@
 </docs>
 
 <script setup lang="ts">
+import { getMinioAvatarUrl } from "~/composables/api/Image/ImageController";
 	useHead({ title: "欢迎加入KIRAKIRA☆DOUGA大家庭" }); // TODO: 多语言
 	const next = Array.isArray(useRoute().query.next) ?
 		useRoute().query.next?.[0] ?? "/" :
@@ -174,7 +175,7 @@
 			<h2>完善个人信息</h2>
 			<div class="items">
 				<div class="avatar">
-					<UserAvatar :avatar="avatarBlob" @click="handleUploadAvatarImage" />
+					<UserAvatar :avatar="avatarBlob?.startsWith('blob:') ? avatarBlob : (avatarBlob ? getMinioAvatarUrl(avatarBlob) : undefined)" @click="handleUploadAvatarImage" />
 					<span>上传头像</span>
 					<input ref="userAvatarFileInput" type="file" accept="image/*" hidden />
 				</div>
@@ -190,7 +191,7 @@
 	<ClientOnlyTeleport to="body">
 		<div v-if="showWelcome" class="welcome">
 			<div class="avatar">
-				<UserAvatar :avatar="avatarBlob" />
+				<UserAvatar :avatar="avatarBlob?.startsWith('blob:') ? avatarBlob : (avatarBlob ? getMinioAvatarUrl(avatarBlob) : undefined)" />
 				<ProgressRing />
 			</div>
 			<div class="content-wrapper">

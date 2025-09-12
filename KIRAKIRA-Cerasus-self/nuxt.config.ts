@@ -226,6 +226,17 @@ export default defineNuxtConfig({
 	image: {
 		format: ["avif", "webp"], // 只适用于 <NuxtImg>，对 <NuxtImg> 无效。
 		providers: {},
+		domains: [
+			process.env.MINIO_END_POINT || "100.106.146.115:9000"
+		],
+		ipx: {
+			remotePatterns: [
+				{
+					protocol: process.env.MINIO_USE_SSL === "true" ? "https" : "http",
+					hostname: process.env.MINIO_END_POINT || "100.106.146.115:9000",
+				},
+			],
+		},
 	},
 
 	piniaPersistedstate: {
@@ -304,6 +315,9 @@ export default defineNuxtConfig({
 		public: {
 			gitBranch: process.env.VERCEL_GIT_COMMIT_REF,
 			gitCommit: process.env.VERCEL_GIT_COMMIT_SHA,
+			minioEndPoint: process.env.MINIO_END_POINT || "100.106.146.115:9000",
+			minioImageBucket: process.env.MINIO_IMAGE_BUCKET || "videos",
+			minioUseSsl: process.env.MINIO_USE_SSL || "false",
 		},
 	},
 
