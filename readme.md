@@ -1,5 +1,8 @@
 # KiraKiraDouga-Libre
 
+<img width="1344" height="768" alt="kirakira-Libre" src="https://github.com/user-attachments/assets/c6f0e7f6-e695-490c-a5e8-4f3c1b33be5b" />
+
+
 ## 概要
 
 このプロジェクトは、KIRAKIRA☆DOUGA Project Teamによる素晴らしく芸術的なOSS[KIRAKIRADouga](https://github.com/KIRAKIRA-DOUGA)をフォークし、ストレージバックエンドをCloudflare R2系からMinIOに変更したものです。これにより、完全なセルフホスト環境での運用が可能になります。ほかにも、招待コード機能の削除や日本語への翻訳などローカルでの運用がしやすくしていく予定です。
