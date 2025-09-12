@@ -1,6 +1,20 @@
 <script setup lang="ts">
 	import NumberFlow from "@number-flow/vue";
 
+	// アバターURLを処理するcomputed プロパティ  
+	const processedAvatar = computed(() => {  
+		if (!props.avatar) return undefined;  
+		
+		// 完全なURLの場合（httpまたはhttpsで始まる）はファイル名のみを抽出  
+		if (props.avatar.startsWith('http://') || props.avatar.startsWith('https://')) {  
+			const urlParts = props.avatar.split('/');  
+			return urlParts[urlParts.length - 1]; // 最後の部分（ファイル名）を返す  
+		}  
+		
+		// 既にファイル名のみの場合はそのまま返す  
+		return props.avatar;  
+	});
+
 	const props = withDefaults(defineProps<{
 		/** 评论唯一 ID */
 		commentId: string;
@@ -228,7 +242,7 @@
 <template>
 	<Comp>
 		<UserContent
-			:avatar
+			:avatar="processedAvatar" 
 			:uid
 			:nickname
 			:username
